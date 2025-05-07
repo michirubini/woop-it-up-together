@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
 
 export interface User {
@@ -61,7 +60,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Mock data for demo purposes
-const mockUsers: User[] = [
+const initialMockUsers: User[] = [
   {
     id: '1',
     firstName: 'Marco',
@@ -118,7 +117,7 @@ const mockUsers: User[] = [
   },
 ];
 
-const mockWoops: Woop[] = [
+const initialMockWoops = [
   {
     id: '1',
     creator: mockUsers[0],
@@ -150,8 +149,38 @@ const mockWoops: Woop[] = [
 ];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [woops, setWoops] = useState<Woop[]>(mockWoops);
+  // Use localStorage for users if available, otherwise use the initial mock data
+  const [mockUsers, setMockUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem('woopitUsers');
+    return savedUsers ? JSON.parse(savedUsers) : initialMockUsers;
+  });
+  
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('woopitCurrentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
+  const [woops, setWoops] = useState<Woop[]>(() => {
+    const savedWoops = localStorage.getItem('woopitWoops');
+    return savedWoops ? JSON.parse(savedWoops) : initialMockWoops;
+  });
+
+  // Save to localStorage whenever these states change
+  useEffect(() => {
+    localStorage.setItem('woopitUsers', JSON.stringify(mockUsers));
+  }, [mockUsers]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('woopitCurrentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('woopitCurrentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('woopitWoops', JSON.stringify(woops));
+  }, [woops]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     // Simulate API call
@@ -173,6 +202,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     // Simulate API call
     try {
+      // Check if email already exists
+      if (userData.email && mockUsers.some(user => user.email === userData.email)) {
+        toast.error('Email già registrata');
+        return false;
+      }
+      
       const newUser: User = {
         id: `user-${Date.now()}`,
         firstName: userData.firstName || '',
@@ -191,9 +226,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       };
       
-      // In a real app, this would save to a database
-      mockUsers.push(newUser);
+      // Add the new user to our mock database
+      setMockUsers(prev => [...prev, newUser]);
+      
+      // Automatically log in the new user
       setCurrentUser(newUser);
+      
       toast.success('Registrazione completata con successo!');
       return true;
     } catch (error) {

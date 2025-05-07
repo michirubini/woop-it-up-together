@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,15 @@ const ProfileSetup: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Check if user is logged in
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate]);
+  
+  // If not logged in, don't render content
   if (!currentUser) {
-    navigate('/login');
     return null;
   }
   
@@ -65,7 +72,7 @@ const ProfileSetup: React.FC = () => {
     setCurrentUser({
       ...currentUser,
       profilePicture: selectedImage,
-      photos: [selectedImage]
+      photos: [...(currentUser.photos || []), selectedImage]
     });
     
     toast.success('Profilo completato! Ora puoi iniziare a Woopare');
