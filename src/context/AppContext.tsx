@@ -8,6 +8,7 @@ export interface User {
   lastName: string;
   age: number;
   profilePicture?: string;
+  photos: string[];
   email?: string;
   phone?: string;
   location?: string;
@@ -67,6 +68,7 @@ const mockUsers: User[] = [
     lastName: 'Rossi',
     age: 28,
     profilePicture: 'https://randomuser.me/api/portraits/men/32.jpg',
+    photos: ['https://randomuser.me/api/portraits/men/32.jpg'], 
     email: 'marco@example.com',
     location: 'Milano, IT',
     bio: 'Appassionato di sport e tecnologia',
@@ -84,6 +86,7 @@ const mockUsers: User[] = [
     lastName: 'Bianchi',
     age: 25,
     profilePicture: 'https://randomuser.me/api/portraits/women/44.jpg',
+    photos: ['https://randomuser.me/api/portraits/women/44.jpg'],
     email: 'giulia@example.com',
     location: 'Roma, IT',
     bio: 'Amante dell\'arte e della cucina',
@@ -101,6 +104,7 @@ const mockUsers: User[] = [
     lastName: 'Verdi',
     age: 30,
     profilePicture: 'https://randomuser.me/api/portraits/men/67.jpg',
+    photos: ['https://randomuser.me/api/portraits/men/67.jpg'],
     email: 'luca@example.com',
     location: 'Torino, IT',
     bio: 'Sportivo e amante delle escursioni',
@@ -175,6 +179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         lastName: userData.lastName || '',
         age: userData.age || 0,
         profilePicture: userData.profilePicture,
+        photos: userData.photos || [],
         email: userData.email,
         phone: userData.phone,
         location: userData.location,

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
@@ -12,43 +12,85 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Star, Award, Calendar, Clock } from 'lucide-react';
+import { Star, Award, Calendar, Clock, Upload, Image, X } from 'lucide-react';
+import { toast } from 'sonner';
+
+const MAX_PHOTOS = 7;
 
 const Profile: React.FC = () => {
-  const { currentUser } = useAppContext();
+  const { currentUser, setCurrentUser } = useAppContext();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedTab, setSelectedTab] = useState<'info' | 'photos'>('info');
   
   if (!currentUser) {
     navigate('/login');
     return null;
   }
   
-  const getAvailabilityText = () => {
-    const { timeOfDay, daysOfWeek } = currentUser.availability;
-    
-    let timeText = '';
-    if (timeOfDay.length === 3) {
-      timeText = 'Tutto il giorno';
-    } else if (timeOfDay.length > 0) {
-      timeText = timeOfDay.join(', ');
-    }
-    
-    let daysText = '';
-    if (daysOfWeek.length === 2) {
-      daysText = 'Tutti i giorni';
-    } else if (daysOfWeek.length > 0) {
-      daysText = daysOfWeek.join(', ');
-    }
-    
-    if (timeText && daysText) {
-      return `${timeText}, ${daysText}`;
-    } else {
-      return timeText || daysText || 'Non specificata';
-    }
-  };
-  
   const getInitials = (): string => {
     return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (currentUser.photos.length >= MAX_PHOTOS) {
+      toast.error(`Puoi caricare massimo ${MAX_PHOTOS} foto. Elimina qualcuna prima di aggiungerne altre.`);
+      return;
+    }
+
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        const newPhotos = [...(currentUser.photos || []), event.target.result];
+        
+        setCurrentUser({
+          ...currentUser,
+          photos: newPhotos,
+          profilePicture: currentUser.profilePicture || event.target.result
+        });
+        
+        toast.success('Foto caricata con successo!');
+      }
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSetProfilePicture = (photo: string) => {
+    setCurrentUser({
+      ...currentUser,
+      profilePicture: photo
+    });
+    
+    toast.success('Foto profilo aggiornata!');
+  };
+
+  const handleDeletePhoto = (photoToDelete: string) => {
+    const newPhotos = currentUser.photos.filter(photo => photo !== photoToDelete);
+    
+    // If we're deleting the current profile picture, set a new one if available
+    let newProfilePicture = currentUser.profilePicture;
+    if (currentUser.profilePicture === photoToDelete) {
+      newProfilePicture = newPhotos.length > 0 ? newPhotos[0] : undefined;
+    }
+    
+    setCurrentUser({
+      ...currentUser,
+      photos: newPhotos,
+      profilePicture: newProfilePicture
+    });
+    
+    toast.success('Foto eliminata!');
   };
   
   return (
@@ -82,77 +124,159 @@ const Profile: React.FC = () => {
               )}
             </div>
           </div>
+          
+          <div className="flex space-x-2 mt-4 justify-center sm:justify-start">
+            <Button 
+              variant={selectedTab === 'info' ? 'default' : 'outline'}
+              onClick={() => setSelectedTab('info')}
+              className="flex items-center"
+            >
+              Informazioni
+            </Button>
+            <Button 
+              variant={selectedTab === 'photos' ? 'default' : 'outline'}
+              onClick={() => setSelectedTab('photos')}
+              className="flex items-center"
+            >
+              <Image className="mr-1" size={16} /> Foto ({currentUser.photos.length}/{MAX_PHOTOS})
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Interessi</h3>
-              <div className="flex flex-wrap gap-2">
-                {currentUser.interests.map((interest, index) => (
-                  <Badge key={index} variant="secondary">
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Disponibilità</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-start">
-                  <Calendar size={18} className="text-gray-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Giorni</p>
-                    <p className="text-gray-600">
-                      {currentUser.availability.daysOfWeek.length > 0
-                        ? currentUser.availability.daysOfWeek.join(', ')
-                        : 'Non specificati'}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <Clock size={18} className="text-gray-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Orari</p>
-                    <p className="text-gray-600">
-                      {currentUser.availability.timeOfDay.length > 0
-                        ? currentUser.availability.timeOfDay.join(', ')
-                        : 'Non specificati'}
-                    </p>
-                  </div>
+          {selectedTab === 'info' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Interessi</h3>
+                <div className="flex flex-wrap gap-2">
+                  {currentUser.interests.map((interest, index) => (
+                    <Badge key={index} variant="secondary">
+                      {interest}
+                    </Badge>
+                  ))}
                 </div>
               </div>
               
-              {currentUser.availability.flexibility && (
-                <p className="mt-2 text-gray-600">
-                  <span className="font-medium">Flessibilità:</span> {currentUser.availability.flexibility}
-                </p>
-              )}
-            </div>
-            
-            {currentUser.badges && currentUser.badges.length > 0 && (
-              <>
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2 flex items-center">
-                    <Award size={18} className="text-gray-500 mr-2" />
-                    Badge
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {currentUser.badges.map((badge, index) => (
-                      <Badge key={index} variant="outline" className="py-2">
-                        {badge}
-                      </Badge>
-                    ))}
+              <Separator />
+              
+              <div>
+                <h3 className="text-lg font-medium mb-2">Disponibilità</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-start">
+                    <Calendar size={18} className="text-gray-500 mr-2 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Giorni</p>
+                      <p className="text-gray-600">
+                        {currentUser.availability.daysOfWeek.length > 0
+                          ? currentUser.availability.daysOfWeek.join(', ')
+                          : 'Non specificati'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Clock size={18} className="text-gray-500 mr-2 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Orari</p>
+                      <p className="text-gray-600">
+                        {currentUser.availability.timeOfDay.length > 0
+                          ? currentUser.availability.timeOfDay.join(', ')
+                          : 'Non specificati'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+                
+                {currentUser.availability.flexibility && (
+                  <p className="mt-2 text-gray-600">
+                    <span className="font-medium">Flessibilità:</span> {currentUser.availability.flexibility}
+                  </p>
+                )}
+              </div>
+              
+              {currentUser.badges && currentUser.badges.length > 0 && (
+                <>
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2 flex items-center">
+                      <Award size={18} className="text-gray-500 mr-2" />
+                      Badge
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {currentUser.badges.map((badge, index) => (
+                        <Badge key={index} variant="outline" className="py-2">
+                          {badge}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          {selectedTab === 'photos' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Le tue foto</h3>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {currentUser.photos.map((photo, index) => (
+                    <div key={index} className="relative group">
+                      <img 
+                        src={photo} 
+                        alt={`Foto ${index + 1}`} 
+                        className={`w-full h-32 object-cover rounded-md ${currentUser.profilePicture === photo ? 'ring-2 ring-woop-purple' : ''}`}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 rounded-md">
+                        <div className="flex space-x-2">
+                          {currentUser.profilePicture !== photo && (
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => handleSetProfilePicture(photo)}
+                              className="bg-woop-purple hover:bg-woop-purple/90"
+                            >
+                              Imposta principale
+                            </Button>
+                          )}
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => handleDeletePhoto(photo)}
+                          >
+                            <X size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {currentUser.photos.length < MAX_PHOTOS && (
+                    <div 
+                      className="w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-woop-purple transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload size={24} className="text-gray-400" />
+                      <span className="text-gray-500 mt-2">Carica foto</span>
+                    </div>
+                  )}
+                </div>
+                
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                
+                <p className="text-sm text-gray-500 mt-4">
+                  Puoi caricare fino a {MAX_PHOTOS} foto. Le foto devono essere in formato JPG, PNG o GIF.
+                </p>
+              </div>
+            </div>
+          )}
           
           <div className="mt-6">
             <Button variant="outline" className="w-full" onClick={() => navigate('/')}>

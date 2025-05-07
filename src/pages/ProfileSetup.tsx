@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from 'sonner';
-import { Camera } from 'lucide-react';
+import { Camera, Upload } from 'lucide-react';
 
 const placeholderImages = [
   'https://randomuser.me/api/portraits/men/32.jpg',
@@ -29,6 +29,7 @@ const ProfileSetup: React.FC = () => {
   const navigate = useNavigate();
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   if (!currentUser) {
     navigate('/login');
@@ -39,6 +40,22 @@ const ProfileSetup: React.FC = () => {
     setSelectedImage(image);
   };
   
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        setSelectedImage(event.target.result);
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  };
+  
   const handleContinue = () => {
     if (!selectedImage) {
       toast.error('Per favore, seleziona una foto profilo');
@@ -47,7 +64,8 @@ const ProfileSetup: React.FC = () => {
     
     setCurrentUser({
       ...currentUser,
-      profilePicture: selectedImage
+      profilePicture: selectedImage,
+      photos: [selectedImage]
     });
     
     toast.success('Profilo completato! Ora puoi iniziare a Woopare');
@@ -77,7 +95,7 @@ const ProfileSetup: React.FC = () => {
               )}
             </Avatar>
             
-            <div className="mt-4 mb-6">
+            <div className="mt-4 mb-6 w-full">
               <Label>Seleziona una foto profilo</Label>
               <div className="grid grid-cols-3 gap-4 mt-2">
                 {placeholderImages.map((image, index) => (
@@ -92,9 +110,26 @@ const ProfileSetup: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-gray-500 text-center">
-                In una versione reale, potresti caricare una tua foto
-              </p>
+              
+              <div className="mt-4">
+                <div className="text-center">
+                  <Label className="mb-2 block">Oppure carica una tua foto</Label>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload size={16} className="mr-2" /> Carica dalla galleria
+                  </Button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
             
             <Button 
