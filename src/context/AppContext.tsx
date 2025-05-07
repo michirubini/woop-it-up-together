@@ -117,10 +117,12 @@ const initialMockUsers: User[] = [
   },
 ];
 
+// We need to define initialMockWoops without referencing mockUsers
+// Use initialMockUsers instead
 const initialMockWoops = [
   {
     id: '1',
-    creator: mockUsers[0],
+    creator: initialMockUsers[0],
     interest: 'Calcetto',
     description: 'Partita amichevole 5vs5, tutti i livelli benvenuti!',
     preferences: {
@@ -129,12 +131,12 @@ const initialMockWoops = [
       maxDistance: 10,
       timeFrame: 'Domani sera',
     },
-    participants: [mockUsers[0], mockUsers[2]],
+    participants: [initialMockUsers[0], initialMockUsers[2]],
     status: 'searching',
   },
   {
     id: '2',
-    creator: mockUsers[1],
+    creator: initialMockUsers[1],
     interest: 'Museo',
     description: 'Visita alla nuova mostra di arte contemporanea',
     preferences: {
@@ -143,7 +145,7 @@ const initialMockWoops = [
       maxDistance: 5,
       timeFrame: 'Questo weekend',
     },
-    participants: [mockUsers[1]],
+    participants: [initialMockUsers[1]],
     status: 'searching',
   }
 ];
@@ -280,7 +282,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       prevWoops.map(w => {
         if (w.id === woopId) {
           // Find potential participants based on interests
-          const potentialParticipants = mockUsers.filter(
+          const potentialParticipants = initialMockUsers.filter(
             u => u.id !== currentUser?.id && u.interests.includes(w.interest)
           );
           
