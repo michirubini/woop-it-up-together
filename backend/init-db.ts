@@ -1,8 +1,13 @@
 import db = require("./db");
 
 async function createTables() {
+  // ❌ Elimina le tabelle se esistono (attenzione: cancella anche i dati!)
+  await db.query(`DROP TABLE IF EXISTS woops CASCADE;`);
+  await db.query(`DROP TABLE IF EXISTS users CASCADE;`);
+
+  // ✅ Ricrea la tabella users
   await db.query(`
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE users (
       id SERIAL PRIMARY KEY,
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
@@ -16,8 +21,9 @@ async function createTables() {
     );
   `);
 
+  // ✅ Ricrea la tabella woops
   await db.query(`
-    CREATE TABLE IF NOT EXISTS woops (
+    CREATE TABLE woops (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
@@ -26,7 +32,7 @@ async function createTables() {
     );
   `);
 
-  console.log("✅ Tabelle aggiornate con successo.");
+  console.log("✅ Tabelle ricreate con successo.");
   await db.end();
 }
 
