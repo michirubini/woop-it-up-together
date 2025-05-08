@@ -98,9 +98,16 @@ const SearchWoop: React.FC = () => {
     }
     
     // Interest filter
-    if (filters.interests.length > 0 && !filters.interests.includes(woop.interest)) {
-      return false;
-    }
+// Interest filter (consente match parziali e case-insensitive)
+if (
+  filters.interests.length > 0 &&
+  !filters.interests.some(filterInterest =>
+    woop.interest.toLowerCase().includes(filterInterest.toLowerCase())
+  )
+) {
+  return false;
+}
+
     
     // Distance filter
     if (woop.preferences.maxDistance > filters.maxDistance) {

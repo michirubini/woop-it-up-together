@@ -225,30 +225,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const joinWoop = (woopId: string) => {
+  const joinWoop = async (woopId: string) => {
     if (!currentUser) {
       toast.error("Devi effettuare l'accesso per partecipare");
       return;
     }
-    setWoops(prevWoops =>
-      prevWoops.map(w => {
-        if (w.id === woopId && !w.participants.some(p => p.id === currentUser.id)) {
-          if (w.participants.length >= w.preferences.maxParticipants) {
-            toast.error("Questo Woop ha già raggiunto il numero massimo di partecipanti");
-            return w;
+  
+    const woopNumericId = parseInt(woopId.replace("woop-", "")); // converte in ID numerico se serve
+    const userNumericId = parseInt(currentUser.id); // assumi che l'id utente sia un numero nel DB
+  
+    try {
+      // Salva nel backend
+      await fetch(`${API}/api/participants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          woop_id: woopNumericId,
+          user_id: userNumericId,
+        }),
+      });
+  
+      // Aggiorna localmente
+      setWoops(prevWoops =>
+        prevWoops.map(w => {
+          if (w.id === woopId && !w.participants.some(p => p.id === currentUser.id)) {
+            if (w.participants.length >= w.preferences.maxParticipants) {
+              toast.error("Questo Woop ha già raggiunto il numero massimo di partecipanti");
+              return w;
+            }
+            toast.success("Ti sei iscritto al Woop!");
+            return {
+              ...w,
+              status: w.participants.length + 1 >= w.preferences.maxParticipants ? 'active' : w.status,
+              participants: [...w.participants, currentUser]
+            };
           }
-          toast.success("Ti sei iscritto al Woop!");
-          return {
-            ...w,
-            status: w.participants.length + 1 >= w.preferences.maxParticipants ? 'active' : w.status,
-            participants: [...w.participants, currentUser]
-          };
-        }
-        return w;
-      })
-    );
+          return w;
+        })
+      );
+    } catch (error) {
+      console.error("Errore durante la partecipazione al Woop:", error);
+      toast.error("Errore durante la partecipazione");
+    }
   };
-
+  
   const sendMessage = (woopId: string, message: string) => {
     if (!currentUser || !message.trim()) return;
     setWoops(prevWoops =>
@@ -268,14 +288,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
-  const completeWoop = (woopId: string) => {
-    setWoops(prevWoops => 
-      prevWoops.map(w => 
-        w.id === woopId ? { ...w, status: 'completed' } : w
-      )
-    );
-    toast.success("Woop completato! Ora puoi lasciare una recensione");
+  const completeWoop = async (woopId: string) => {
+    const woopNumericId = parseInt(woopId.replace("woop-", ""));
+    try {
+      await fetch(`${API}/api/woops/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ woop_id: woopNumericId }),
+      });
+  
+      setWoops(prevWoops =>
+        prevWoops.map(w =>
+          w.id === woopId ? { ...w, status: 'completed' } : w
+        )
+      );
+  
+      toast.success("Woop completato! Ora puoi lasciare una recensione");
+    } catch (error) {
+      console.error("Errore durante il completamento del Woop:", error);
+      toast.error("Errore nel completamento");
+    }
   };
+  
 
   const rateUser = () => toast.success("Recensione inviata con successo!");
 
