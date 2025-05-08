@@ -21,7 +21,7 @@ router.get("/", async (_req, res) => {
       FROM users
     `);
 
-    res.status(200).json(result.rows);
+    res.status(200).json({ users: result.rows });
   } catch (err) {
     console.error("❌ Errore nel recupero utenti:", err);
     res.status(500).json({ error: "Errore interno nel recupero utenti" });
