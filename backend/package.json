@@ -1,0 +1,16 @@
+{
+    "name": "woop-backend",
+    "type": "commonjs",
+    "scripts": {
+        "init-db": "ts-node init-db.ts"
+    },
+    "dependencies": {
+        "dotenv": "^16.3.1",
+        "pg": "^8.11.3"
+    },
+    "devDependencies": {
+        "@types/pg": "^8.15.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.2.2"
+    }
+}
