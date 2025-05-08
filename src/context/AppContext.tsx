@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 export interface User {
   id: string;
   firstName: string;
@@ -59,19 +61,33 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const initialMockUsers: User[] = [];
-const initialMockWoops: Woop[] = [];
-
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [mockUsers, setMockUsers] = useState<User[]>(initialMockUsers);
+  const [mockUsers, setMockUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('woopitCurrentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [woops, setWoops] = useState<Woop[]>(() => {
     const savedWoops = localStorage.getItem('woopitWoops');
-    return savedWoops ? JSON.parse(savedWoops) : initialMockWoops;
+    return savedWoops ? JSON.parse(savedWoops) : [];
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`${API}/api/users`);
+        const data = await res.json();
+        if (res.ok) {
+          setMockUsers(data.users);
+        } else {
+          console.error("Errore nel caricamento utenti:", data.error);
+        }
+      } catch (error) {
+        console.error("Errore fetch utenti:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('woopitWoops', JSON.stringify(woops));
@@ -84,10 +100,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('woopitCurrentUser');
     }
   }, [currentUser]);
-
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const res = await fetch("http://localhost:3001/api/login", {
+      const res = await fetch(`${API}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -107,7 +122,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         interests: data.user.interests || [],
         availability: data.user.availability || {
           timeOfDay: [],
-          daysOfWeek: []
+          daysOfWeek: [],
         }
       });
       toast.success("Login effettuato con successo!");
@@ -121,7 +136,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {
-      const res = await fetch("http://localhost:3001/api/register", {
+      const res = await fetch(`${API}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...userData, password }),
@@ -179,6 +194,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setWoops([...woops, newWoop]);
     toast.success("Woop creato! Stiamo cercando partecipanti...");
+    setTimeout(() => {
+      simulateFoundParticipants(newWoop.id);
+    }, 3000);
+  };
+
+  const simulateFoundParticipants = (woopId: string) => {
+    setWoops(prevWoops =>
+      prevWoops.map(w => {
+        if (w.id === woopId) {
+          const potentialParticipants = mockUsers.filter(
+            u => u.id !== currentUser?.id && u.interests.includes(w.interest)
+          );
+          const numToAdd = Math.min(
+            w.preferences.maxParticipants - 1,
+            potentialParticipants.length
+          );
+          const additionalParticipants = potentialParticipants.slice(0, numToAdd);
+          return {
+            ...w,
+            status: 'ready',
+            participants: [...w.participants, ...additionalParticipants]
+          };
+        }
+        return w;
+      })
+    );
+    if (currentUser) {
+      toast.success('Il tuo Woop è pronto! Abbiamo trovato dei partecipanti interessati.');
+    }
   };
 
   const joinWoop = (woopId: string) => {
@@ -186,45 +230,69 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       toast.error("Devi effettuare l'accesso per partecipare");
       return;
     }
-    setWoops(prevWoops => prevWoops.map(w => {
-      if (w.id === woopId && !w.participants.some(p => p.id === currentUser.id)) {
-        if (w.participants.length >= w.preferences.maxParticipants) {
-          toast.error("Questo Woop ha già raggiunto il numero massimo di partecipanti");
-          return w;
+    setWoops(prevWoops =>
+      prevWoops.map(w => {
+        if (w.id === woopId && !w.participants.some(p => p.id === currentUser.id)) {
+          if (w.participants.length >= w.preferences.maxParticipants) {
+            toast.error("Questo Woop ha già raggiunto il numero massimo di partecipanti");
+            return w;
+          }
+          toast.success("Ti sei iscritto al Woop!");
+          return {
+            ...w,
+            status: w.participants.length + 1 >= w.preferences.maxParticipants ? 'active' : w.status,
+            participants: [...w.participants, currentUser]
+          };
         }
-        toast.success("Ti sei iscritto al Woop!");
-        return {
-          ...w,
-          status: w.participants.length + 1 >= w.preferences.maxParticipants ? 'active' : w.status,
-          participants: [...w.participants, currentUser]
-        };
-      }
-      return w;
-    }));
+        return w;
+      })
+    );
   };
 
   const sendMessage = (woopId: string, message: string) => {
     if (!currentUser || !message.trim()) return;
-    setWoops(prevWoops => prevWoops.map(w => {
-      if (w.id === woopId) {
-        return {
-          ...w,
-          messages: [...(w.messages || []), { userId: currentUser.id, text: message, timestamp: new Date() }]
-        };
-      }
-      return w;
-    }));
+    setWoops(prevWoops =>
+      prevWoops.map(w => {
+        if (w.id === woopId) {
+          return {
+            ...w,
+            messages: [...(w.messages || []), {
+              userId: currentUser.id,
+              text: message,
+              timestamp: new Date()
+            }]
+          };
+        }
+        return w;
+      })
+    );
   };
 
   const completeWoop = (woopId: string) => {
-    setWoops(prevWoops => prevWoops.map(w => w.id === woopId ? { ...w, status: 'completed' } : w));
+    setWoops(prevWoops => 
+      prevWoops.map(w => 
+        w.id === woopId ? { ...w, status: 'completed' } : w
+      )
+    );
     toast.success("Woop completato! Ora puoi lasciare una recensione");
   };
 
   const rateUser = () => toast.success("Recensione inviata con successo!");
 
   return (
-    <AppContext.Provider value={{ currentUser, woops, setCurrentUser, login, register, logout, createWoop, joinWoop, sendMessage, completeWoop, rateUser }}>
+    <AppContext.Provider value={{
+      currentUser,
+      woops,
+      setCurrentUser,
+      login,
+      register,
+      logout,
+      createWoop,
+      joinWoop,
+      sendMessage,
+      completeWoop,
+      rateUser
+    }}>
       {children}
     </AppContext.Provider>
   );

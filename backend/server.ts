@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth'; // Assicurati che il percorso sia corretto
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users'; // ✅ nuova importazione
 
 const app = express();
 const PORT = 3001;
@@ -8,10 +9,11 @@ const PORT = 3001;
 app.use(cors()); // Se usi frontend separato, cors è necessario
 app.use(express.json());
 
-app.use('/api', authRoutes); // 💥 monta le rotte /api/register e /api/login
+app.use('/api', authRoutes);       // 💥 /api/register e /api/login
+app.use('/api/users', userRoutes); // ✅ /api/users (GET utenti)
 
 // ✅ Aggiunta route di base per evitare "Cannot GET /"
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('🟢 Backend WoopIt attivo!');
 });
 
