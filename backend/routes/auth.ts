@@ -5,7 +5,7 @@ import db = require("../db");
 const router = express.Router();
 
 // ✅ REGISTER endpoint
-router.post("/register", async (req: any, res: any) => {
+router.post("/register", async (req, res) => {
   const {
     firstName,
     lastName,
@@ -14,7 +14,9 @@ router.post("/register", async (req: any, res: any) => {
     password,
     bio,
     interests,
-    availability
+    availability,
+    profilePicture,
+    photos
   } = req.body;
 
   if (!firstName || !lastName || !age || !email || !password) {
@@ -24,10 +26,11 @@ router.post("/register", async (req: any, res: any) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await db.query(
+    const result = await db.query(
       `INSERT INTO users 
-        (first_name, last_name, age, email, password, bio, interests, availability)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        (first_name, last_name, age, email, password, bio, interests, availability, profile_picture, photos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, first_name, last_name, age, email, bio, interests, availability, profile_picture, photos`,
       [
         firstName,
         lastName,
@@ -36,19 +39,23 @@ router.post("/register", async (req: any, res: any) => {
         hashedPassword,
         bio || null,
         interests || [],
-        availability || {}
+        availability || {},
+        profilePicture || null,
+        photos || []
       ]
     );
 
-    res.status(201).json({ message: "Utente registrato con successo." });
+    const user = result.rows[0];
+
+    res.status(201).json({ message: "Utente registrato con successo.", user });
   } catch (err) {
     console.error("❌ Errore durante la registrazione:", err);
     res.status(400).json({ error: "Errore durante la registrazione." });
   }
 });
 
-// ✅ LOGIN endpoint (fuori dal blocco di /register)
-router.post("/login", async (req: any, res: any) => {
+// ✅ LOGIN endpoint
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -74,7 +81,15 @@ router.post("/login", async (req: any, res: any) => {
         id: user.id,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: user.email
+        age: user.age,
+        email: user.email,
+        bio: user.bio,
+        interests: user.interests,
+        availability: user.availability,
+        profilePicture: user.profile_picture,
+        photos: user.photos,
+        rating: user.rating,
+        badges: user.badges
       }
     });
   } catch (err) {

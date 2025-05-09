@@ -107,32 +107,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+  
       const data = await res.json();
+  
       if (!res.ok) {
         toast.error(data.error || "Errore di login");
         return false;
       }
+  
       setCurrentUser({
         id: data.user.id,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         age: data.user.age || 0,
         email: data.user.email,
-        photos: [],
+        profilePicture: data.user.profilePicture || undefined,
+        photos: data.user.photos || [],
         interests: data.user.interests || [],
         availability: data.user.availability || {
           timeOfDay: [],
           daysOfWeek: [],
-        }
+          flexibility: '',
+        },
+        rating: data.user.rating,
+        badges: data.user.badges || [],
       });
+  
       toast.success("Login effettuato con successo!");
       return true;
+  
     } catch (error) {
       console.error("Errore login:", error);
       toast.error("Errore durante il login");
       return false;
     }
   };
+  
 
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
@@ -16,6 +15,7 @@ import { Star, Award, Calendar, Clock, Upload, Image, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MAX_PHOTOS = 7;
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const Profile: React.FC = () => {
   const { currentUser, setCurrentUser } = useAppContext();
@@ -60,25 +60,37 @@ const Profile: React.FC = () => {
     
     reader.readAsDataURL(file);
     
-    // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleSetProfilePicture = (photo: string) => {
-    setCurrentUser({
+  const handleSetProfilePicture = async (photo: string) => {
+    const updatedUser = {
       ...currentUser,
       profilePicture: photo
-    });
-    
-    toast.success('Foto profilo aggiornata!');
+    };
+    setCurrentUser(updatedUser);
+
+    try {
+      await fetch(`${API}/api/users/${currentUser.id}/photo`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profilePicture: photo,
+          photos: currentUser.photos
+        })
+      });
+      toast.success('Foto profilo aggiornata!');
+    } catch (error) {
+      console.error("Errore salvataggio foto:", error);
+      toast.error("Errore durante il salvataggio della foto");
+    }
   };
 
   const handleDeletePhoto = (photoToDelete: string) => {
     const newPhotos = currentUser.photos.filter(photo => photo !== photoToDelete);
     
-    // If we're deleting the current profile picture, set a new one if available
     let newProfilePicture = currentUser.profilePicture;
     if (currentUser.profilePicture === photoToDelete) {
       newProfilePicture = newPhotos.length > 0 ? newPhotos[0] : undefined;
@@ -92,7 +104,7 @@ const Profile: React.FC = () => {
     
     toast.success('Foto eliminata!');
   };
-  
+
   return (
     <div className="max-w-3xl mx-auto py-8">
       <Card>
@@ -142,22 +154,24 @@ const Profile: React.FC = () => {
             </Button>
           </div>
         </CardHeader>
+
         <CardContent>
-          {selectedTab === 'info' && (
+          {selectedTab === 'info' ? (
+            // 👇 sezione "Informazioni"
             <div className="space-y-6">
+              {/* Interessi */}
               <div>
                 <h3 className="text-lg font-medium mb-2">Interessi</h3>
                 <div className="flex flex-wrap gap-2">
                   {currentUser.interests.map((interest, index) => (
-                    <Badge key={index} variant="secondary">
-                      {interest}
-                    </Badge>
+                    <Badge key={index} variant="secondary">{interest}</Badge>
                   ))}
                 </div>
               </div>
-              
+
               <Separator />
-              
+
+              {/* Disponibilità */}
               <div>
                 <h3 className="text-lg font-medium mb-2">Disponibilità</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,7 +186,6 @@ const Profile: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  
                   <div className="flex items-start">
                     <Clock size={18} className="text-gray-500 mr-2 mt-0.5" />
                     <div>
@@ -185,18 +198,17 @@ const Profile: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
                 {currentUser.availability.flexibility && (
                   <p className="mt-2 text-gray-600">
                     <span className="font-medium">Flessibilità:</span> {currentUser.availability.flexibility}
                   </p>
                 )}
               </div>
-              
+
+              {/* Badge */}
               {currentUser.badges && currentUser.badges.length > 0 && (
                 <>
                   <Separator />
-                  
                   <div>
                     <h3 className="text-lg font-medium mb-2 flex items-center">
                       <Award size={18} className="text-gray-500 mr-2" />
@@ -204,22 +216,18 @@ const Profile: React.FC = () => {
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {currentUser.badges.map((badge, index) => (
-                        <Badge key={index} variant="outline" className="py-2">
-                          {badge}
-                        </Badge>
+                        <Badge key={index} variant="outline" className="py-2">{badge}</Badge>
                       ))}
                     </div>
                   </div>
                 </>
               )}
             </div>
-          )}
-          
-          {selectedTab === 'photos' && (
+          ) : (
+            // 👇 sezione "Foto"
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium mb-4">Le tue foto</h3>
-                
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {currentUser.photos.map((photo, index) => (
                     <div key={index} className="relative group">
@@ -251,7 +259,6 @@ const Profile: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  
                   {currentUser.photos.length < MAX_PHOTOS && (
                     <div 
                       className="w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-woop-purple transition-colors"
@@ -262,7 +269,6 @@ const Profile: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -270,14 +276,12 @@ const Profile: React.FC = () => {
                   accept="image/*"
                   className="hidden"
                 />
-                
                 <p className="text-sm text-gray-500 mt-4">
                   Puoi caricare fino a {MAX_PHOTOS} foto. Le foto devono essere in formato JPG, PNG o GIF.
                 </p>
               </div>
             </div>
           )}
-          
           <div className="mt-6">
             <Button variant="outline" className="w-full" onClick={() => navigate('/')}>
               Torna alla Home
@@ -290,3 +294,4 @@ const Profile: React.FC = () => {
 };
 
 export default Profile;
+

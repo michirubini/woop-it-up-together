@@ -24,6 +24,10 @@ async function createTables() {
       bio TEXT,
       interests TEXT[],
       availability JSONB,
+      profile_picture TEXT,
+      photos TEXT[],
+      rating REAL,
+      badges TEXT[],
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);

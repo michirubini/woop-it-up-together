@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
@@ -13,7 +12,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from 'sonner';
-import { Camera, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const placeholderImages = [
   'https://randomuser.me/api/portraits/men/32.jpg',
@@ -27,62 +28,73 @@ const placeholderImages = [
 const ProfileSetup: React.FC = () => {
   const { currentUser, setCurrentUser } = useAppContext();
   const navigate = useNavigate();
-  
+
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Check if user is logged in
+
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-    }
+    if (!currentUser) navigate('/login');
   }, [currentUser, navigate]);
-  
-  // If not logged in, don't render content
-  if (!currentUser) {
-    return null;
-  }
-  
+
+  if (!currentUser) return null;
+
   const handleImageSelect = (image: string) => {
     setSelectedImage(image);
   };
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       if (event.target && typeof event.target.result === 'string') {
         setSelectedImage(event.target.result);
       }
     };
-    
+
     reader.readAsDataURL(file);
   };
-  
-  const handleContinue = () => {
+
+  const handleContinue = async () => {
     if (!selectedImage) {
       toast.error('Per favore, seleziona una foto profilo');
       return;
     }
-    
+
+    const updatedPhotos = [...(currentUser.photos || []), selectedImage];
+
+    // Aggiorna stato locale
     setCurrentUser({
       ...currentUser,
       profilePicture: selectedImage,
-      photos: [...(currentUser.photos || []), selectedImage]
+      photos: updatedPhotos
     });
-    
-    toast.success('Profilo completato! Ora puoi iniziare a Woopare');
-    navigate('/');
+
+    // Salva nel DB
+    try {
+      await fetch(`${API}/api/users/${currentUser.id}/photo`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profilePicture: selectedImage,
+          photos: updatedPhotos
+        })
+      });
+      toast.success('Profilo completato! Ora puoi iniziare a Woopare');
+      navigate('/');
+    } catch (error) {
+      console.error("Errore salvataggio foto:", error);
+      toast.error("Errore durante il salvataggio della foto");
+    }
   };
-  
+
   const getInitials = (): string => {
     return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase();
   };
-  
+
   return (
     <div className="max-w-md mx-auto py-8">
       <Card>
@@ -101,7 +113,7 @@ const ProfileSetup: React.FC = () => {
                 </AvatarFallback>
               )}
             </Avatar>
-            
+
             <div className="mt-4 mb-6 w-full">
               <Label>Seleziona una foto profilo</Label>
               <div className="grid grid-cols-3 gap-4 mt-2">
@@ -113,11 +125,11 @@ const ProfileSetup: React.FC = () => {
                     }`}
                     onClick={() => handleImageSelect(image)}
                   >
-                    <img src={image} alt={`Avatar ${index+1}`} className="w-full h-auto" />
+                    <img src={image} alt={`Avatar ${index + 1}`} className="w-full h-auto" />
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-4">
                 <div className="text-center">
                   <Label className="mb-2 block">Oppure carica una tua foto</Label>
@@ -138,7 +150,7 @@ const ProfileSetup: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <Button 
               onClick={handleContinue}
               className="w-full"
@@ -154,3 +166,4 @@ const ProfileSetup: React.FC = () => {
 };
 
 export default ProfileSetup;
+
