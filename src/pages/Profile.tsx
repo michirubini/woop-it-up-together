@@ -32,38 +32,56 @@ const Profile: React.FC = () => {
     return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
+  
     if (currentUser.photos.length >= MAX_PHOTOS) {
       toast.error(`Puoi caricare massimo ${MAX_PHOTOS} foto. Elimina qualcuna prima di aggiungerne altre.`);
       return;
     }
-
+  
     const file = files[0];
     const reader = new FileReader();
-    
-    reader.onload = (event) => {
+  
+    reader.onload = async (event) => {
       if (event.target && typeof event.target.result === 'string') {
-        const newPhotos = [...(currentUser.photos || []), event.target.result];
-        
-        setCurrentUser({
+        const newPhoto = event.target.result;
+        const updatedPhotos = [...(currentUser.photos || []), newPhoto];
+        const updatedProfilePicture = currentUser.profilePicture || newPhoto;
+  
+        const updatedUser = {
           ...currentUser,
-          photos: newPhotos,
-          profilePicture: currentUser.profilePicture || event.target.result
-        });
-        
-        toast.success('Foto caricata con successo!');
+          photos: updatedPhotos,
+          profilePicture: updatedProfilePicture,
+        };
+  
+        setCurrentUser(updatedUser);
+  
+        try {
+          await fetch(`http://localhost:3001/api/users/${currentUser.id}/photo`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              profilePicture: updatedProfilePicture,
+              photos: updatedPhotos,
+            }),
+          });
+          toast.success('Foto caricata e salvata!');
+        } catch (error) {
+          console.error("Errore salvataggio foto:", error);
+          toast.error("Errore durante il salvataggio della foto");
+        }
       }
     };
-    
+  
     reader.readAsDataURL(file);
-    
+  
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+  
 
   const handleSetProfilePicture = async (photo: string) => {
     const updatedUser = {
