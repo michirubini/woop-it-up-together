@@ -100,6 +100,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('woopitCurrentUser');
     }
   }, [currentUser]);
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/login`, {
@@ -115,7 +116,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return false;
       }
   
-      setCurrentUser({
+      // ✅ Salva token per autenticazione future richieste
+      localStorage.setItem("token", data.token);
+  
+      const user: User = {
         id: data.user.id,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
@@ -131,7 +135,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         },
         rating: data.user.rating,
         badges: data.user.badges || [],
-      });
+      };
+  
+      setCurrentUser(user);
+      localStorage.setItem("woopitCurrentUser", JSON.stringify(user));
   
       toast.success("Login effettuato con successo!");
       return true;

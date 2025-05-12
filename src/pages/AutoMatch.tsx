@@ -1,9 +1,15 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AutoMatch: React.FC = () => {
   const [activity, setActivity] = useState("");
@@ -11,10 +17,22 @@ const AutoMatch: React.FC = () => {
   const [gender, setGender] = useState("entrambi");
   const [maxParticipants, setMaxParticipants] = useState(4);
   const [radiusKm, setRadiusKm] = useState(30);
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [location, setLocation] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 🔍 Funzione che ottiene coordinate da una città
+  const geocodeCity = async (city: string): Promise<{ lat: number; lon: number } | null> => {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+      };
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +42,13 @@ const AutoMatch: React.FC = () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setMessage("⚠️ Non sei autenticato.");
+      setLoading(false);
+      return;
+    }
+
+    const coords = await geocodeCity(location);
+    if (!coords) {
+      setMessage("❌ Impossibile trovare la città indicata.");
       setLoading(false);
       return;
     }
@@ -41,8 +66,8 @@ const AutoMatch: React.FC = () => {
           gender,
           max_participants: maxParticipants,
           radius_km: radiusKm,
-          latitude: parseFloat(latitude),
-          longitude: parseFloat(longitude),
+          latitude: coords.lat,
+          longitude: coords.lon,
         }),
       });
 
@@ -63,7 +88,7 @@ const AutoMatch: React.FC = () => {
   return (
     <div className="max-w-xl mx-auto mt-10 px-4">
       <Card className="p-6 rounded-2xl shadow-md">
-        <h2 className="text-xl font-semibold mb-4">🎯 Match automatico</h2>
+        <h2 className="text-xl font-semibold mb-4">Match automatico</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Attività</Label>
@@ -100,22 +125,30 @@ const AutoMatch: React.FC = () => {
 
           <div>
             <Label>Numero massimo partecipanti</Label>
-            <Input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} />
+            <Input
+              type="number"
+              value={maxParticipants}
+              onChange={(e) => setMaxParticipants(Number(e.target.value))}
+            />
           </div>
 
           <div>
             <Label>Raggio di ricerca (km)</Label>
-            <Input type="number" value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} />
+            <Input
+              type="number"
+              value={radiusKm}
+              onChange={(e) => setRadiusKm(Number(e.target.value))}
+            />
           </div>
 
           <div>
-            <Label>Latitudine</Label>
-            <Input value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="es. 45.4654" />
-          </div>
-
-          <div>
-            <Label>Longitudine</Label>
-            <Input value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="es. 9.1859" />
+            <Label>Dove ti trovi?</Label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Es. Bologna, Milano, Roma..."
+              required
+            />
           </div>
 
           <Button type="submit" disabled={loading} className="w-full">
@@ -130,4 +163,3 @@ const AutoMatch: React.FC = () => {
 };
 
 export default AutoMatch;
-
