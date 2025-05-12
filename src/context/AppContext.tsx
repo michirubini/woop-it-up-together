@@ -116,10 +116,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return false;
       }
   
-      // ✅ Salva token per autenticazione future richieste
-      localStorage.setItem("token", data.token);
+      // ✅ Salva token nel localStorage
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
   
-      const user: User = {
+      // ✅ Salva utente come prima
+      setCurrentUser({
         id: data.user.id,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
@@ -135,14 +138,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         },
         rating: data.user.rating,
         badges: data.user.badges || [],
-      };
-  
-      setCurrentUser(user);
-      localStorage.setItem("woopitCurrentUser", JSON.stringify(user));
+      });
   
       toast.success("Login effettuato con successo!");
       return true;
-  
     } catch (error) {
       console.error("Errore login:", error);
       toast.error("Errore durante il login");
@@ -150,7 +149,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
   
-
+  
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/register`, {
