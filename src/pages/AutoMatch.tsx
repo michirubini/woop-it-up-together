@@ -21,17 +21,30 @@ const AutoMatch: React.FC = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔍 Funzione che ottiene coordinate da una città
-  const geocodeCity = async (city: string): Promise<{ lat: number; lon: number } | null> => {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`);
-    const data = await res.json();
-    if (data && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lon: parseFloat(data[0].lon),
-      };
+  // ✅ Funzione per convertire la città in latitudine/longitudine
+  const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+        {
+          headers: {
+            "User-Agent": "WoopItApp/1.0 (rubinimc@gmail.com)", // obbligatorio per policy Nominatim
+          },
+        }
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon),
+        };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Errore durante la geocodifica:", error);
+      return null;
     }
-    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,9 +59,9 @@ const AutoMatch: React.FC = () => {
       return;
     }
 
-    const coords = await geocodeCity(location);
+    const coords = await geocodeLocation(location);
     if (!coords) {
-      setMessage("❌ Impossibile trovare la città indicata.");
+      setMessage("❌ Posizione non trovata. Controlla il nome della città.");
       setLoading(false);
       return;
     }
