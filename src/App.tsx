@@ -17,6 +17,7 @@ import SearchWoop from "./pages/SearchWoop";
 import WoopDetail from "./pages/WoopDetail";
 import Notifications from "./pages/Notifications";
 import Community from "./pages/Community";
+import AutoMatch from "./pages/AutoMatch";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/community" element={<Community />} />
               <Route path="*" element={<NotFound />} />
+              <Route path="/auto-match" element={<AutoMatch />} />
             </Route>
           </Routes>
         </BrowserRouter>

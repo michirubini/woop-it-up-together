@@ -1,8 +1,10 @@
 import express = require("express");
 import bcrypt = require("bcrypt");
+import jwt = require("jsonwebtoken");
 import db = require("../db");
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || "woop-super-secret"; // spostalo in .env in produzione
 
 // ✅ REGISTER endpoint
 router.post("/register", async (req, res) => {
@@ -54,7 +56,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// ✅ LOGIN endpoint
+// ✅ LOGIN endpoint (con generazione JWT)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -75,8 +77,12 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Password non corretta." });
     }
 
+    // ✅ Genera token JWT
+    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "7d" });
+
     res.status(200).json({
       message: "Login riuscito",
+      token, // ✅ restituisci il token al client
       user: {
         id: user.id,
         firstName: user.first_name,
@@ -99,6 +105,3 @@ router.post("/login", async (req, res) => {
 });
 
 export = router;
-
-
-

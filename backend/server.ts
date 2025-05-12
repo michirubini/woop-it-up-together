@@ -1,11 +1,13 @@
+/// <reference path="./types/express/index.d.ts" />
+
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
-import { saveMessage, getMessages } from './api/messages'; // ✅ aggiunto
+import { saveMessage, getMessages } from './api/messages';
 import { completeWoop } from './api/woops';
 import { joinWoop, getParticipants } from './api/participants';
-
+import matchRequestsRoutes from "./routes/matchRequests";
 
 const app = express();
 const PORT = 3001;
@@ -15,6 +17,7 @@ app.use(express.json());
 
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
+app.use("/api/matchrequests", matchRequestsRoutes);
 
 app.post('/api/participants', async (req, res) => {
   const { woop_id, user_id } = req.body;
@@ -48,7 +51,6 @@ app.get('/api/participants/:woop_id', async (req, res) => {
   }
 });
 
-// ✅ Endpoint per salvare un messaggio
 app.post('/api/messages', async (req, res) => {
   const { woop_id, user_id, text } = req.body;
 
@@ -65,7 +67,6 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-// ✅ Segna un Woop come completato
 app.post('/api/woops/complete', async (req, res) => {
   const { woop_id } = req.body;
 
@@ -82,8 +83,6 @@ app.post('/api/woops/complete', async (req, res) => {
   }
 });
 
-
-// ✅ Endpoint per recuperare messaggi
 app.get('/api/messages/:woop_id', async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
 
@@ -100,7 +99,6 @@ app.get('/api/messages/:woop_id', async (req, res) => {
   }
 });
 
-// ✅ Route base
 app.get('/', (_req, res) => {
   res.send('🟢 Backend WoopIt attivo!');
 });

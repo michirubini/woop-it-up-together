@@ -80,6 +80,24 @@ async function createTablesSafely() {
     );
   `);
 
+  // 🤝 MATCH REQUESTS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS match_requests (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      activity VARCHAR(100) NOT NULL,
+      level VARCHAR(20) CHECK (level IN ('principiante', 'intermedio', 'esperto')) NOT NULL,
+      gender VARCHAR(10) CHECK (gender IN ('maschio', 'femmina', 'entrambi')) NOT NULL,
+      max_participants INTEGER NOT NULL,
+      radius_km INTEGER NOT NULL,
+      latitude DECIMAL(9,6) NOT NULL,
+      longitude DECIMAL(9,6) NOT NULL,
+      status VARCHAR(10) DEFAULT 'pending' CHECK (status IN ('pending', 'matched')),
+      woop_id INTEGER REFERENCES woops(id),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
   console.log("✅ Tabelle verificate o create con successo.");
   await db.end();
 }
@@ -87,3 +105,4 @@ async function createTablesSafely() {
 createTablesSafely().catch((err) => {
   console.error("❌ Errore nella creazione delle tabelle:", err);
 });
+
