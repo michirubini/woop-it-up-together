@@ -60,6 +60,8 @@ const AutoMatch: React.FC = () => {
     }
 
     const coords = await geocodeLocation(location);
+    console.log("📍 Coordinate trovate per", location, coords);
+
     if (!coords) {
       setMessage("❌ Posizione non trovata. Controlla il nome della città.");
       setLoading(false);
