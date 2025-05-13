@@ -32,7 +32,9 @@ import { Send, MapPin, Clock, Users, MessageSquare, Star, Award } from 'lucide-r
 
 const WoopDetail: React.FC = () => {
   const { woopId } = useParams<{ woopId: string }>();
-  const { currentUser, woops, sendMessage, completeWoop, rateUser } = useAppContext();
+const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop } = useAppContext();
+
+
   const navigate = useNavigate();
   
   const [message, setMessage] = useState('');
@@ -277,37 +279,32 @@ const WoopDetail: React.FC = () => {
         <CardFooter>
           {woop.status !== 'completed' ? (
             <div className="w-full flex flex-col space-y-3">
-              {isCreator && woop.status === 'active' && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="default" 
-                      className="w-full"
-                    >
-                      Completa Woop
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Completando il Woop, chiuderai la chat e potrai lasciare recensioni ai partecipanti.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annulla</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleCompleteWoop}>Completa</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              
-              {!isParticipant && (
-                <Button className="w-full" onClick={() => navigate(-1)}>
-                  Torna indietro
-                </Button>
-              )}
-            </div>
+  {isCreator && woop.status === 'active' && (
+    <AlertDialog>
+      ...
+    </AlertDialog>
+  )}
+
+  {isParticipant && (
+    <Button
+      variant="destructive"
+      className="w-full"
+      onClick={() => {
+        leaveWoop(woop.id);
+        navigate('/');
+      }}
+    >
+      Esci dal Woop
+    </Button>
+  )}
+
+  {!isParticipant && (
+    <Button className="w-full" onClick={() => navigate(-1)}>
+      Torna indietro
+    </Button>
+  )}
+</div>
+
           ) : showRatings ? (
             <div className="w-full">
               <h3 className="text-lg font-medium mb-4">Valuta i partecipanti</h3>

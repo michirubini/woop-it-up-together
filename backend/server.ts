@@ -8,6 +8,7 @@ import { saveMessage, getMessages } from './api/messages';
 import { completeWoop } from './api/woops';
 import { joinWoop, getParticipants } from './api/participants';
 import matchRequestsRoutes from "./routes/matchRequests";
+import { leaveWoop } from './api/woops';
 
 const app = express();
 const PORT = 3001;
@@ -32,6 +33,21 @@ app.post('/api/participants', async (req, res) => {
   } catch (error) {
     console.error('❌ Errore salvataggio partecipazione:', error);
     res.status(500).json({ error: 'Errore salvataggio partecipazione' });
+  }
+});
+app.post('/api/woops/leave', async (req, res) => {
+  const { woop_id, user_id } = req.body;
+
+  if (!woop_id || !user_id) {
+    return res.status(400).json({ error: "woop_id e user_id sono richiesti" });
+  }
+
+  try {
+    await leaveWoop(woop_id, user_id);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("❌ Errore uscita Woop:", err);
+    res.status(500).json({ error: "Errore durante l'uscita dal Woop" });
   }
 });
 

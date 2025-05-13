@@ -56,6 +56,7 @@ interface AppContextType {
   joinWoop: (woopId: string) => void;
   sendMessage: (woopId: string, message: string) => void;
   completeWoop: (woopId: string) => void;
+    leaveWoop: (woopId: string) => void;
   rateUser: (userId: string, rating: number, comment?: string, badges?: string[]) => void;
 }
 
@@ -246,7 +247,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       toast.error("Devi effettuare l'accesso per partecipare");
       return;
     }
-  
+  const leaveWoop = async (woopId: string) => {
+  if (!currentUser) return;
+
+  const woopNumericId = parseInt(woopId.replace("woop-", ""));
+  const userNumericId = parseInt(currentUser.id);
+
+  try {
+    await fetch(`${API}/api/woops/leave`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        woop_id: woopNumericId,
+        user_id: userNumericId,
+      }),
+    });
+
+    setWoops(prev => prev.filter(w => w.id !== woopId));
+    toast.success("Sei uscito dal Woop!");
+  } catch (error) {
+    console.error("Errore durante l'uscita dal Woop:", error);
+    toast.error("Errore nell'uscita dal Woop");
+  }
+};
+
     const woopNumericId = parseInt(woopId.replace("woop-", "")); // converte in ID numerico se serve
     const userNumericId = parseInt(currentUser.id); // assumi che l'id utente sia un numero nel DB
   
@@ -304,6 +328,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  const leaveWoop = async (woopId: string) => {
+  if (!currentUser) return;
+
+  const woopNumericId = parseInt(woopId.replace("woop-", ""));
+  const userNumericId = parseInt(currentUser.id);
+
+  try {
+    await fetch(`${API}/api/woops/leave`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ woop_id: woopNumericId, user_id: userNumericId })
+    });
+
+    setWoops(prev =>
+      prev.filter(w => 
+        w.id !== woopId || !w.participants.some(p => p.id === currentUser.id)
+      )
+    );
+    toast.success("Sei uscito dal Woop");
+  } catch (err) {
+    console.error("Errore uscita woop:", err);
+    toast.error("Errore durante l'uscita dal Woop");
+  }
+};
+
+
   const completeWoop = async (woopId: string) => {
     const woopNumericId = parseInt(woopId.replace("woop-", ""));
     try {
@@ -339,6 +389,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       logout,
       createWoop,
       joinWoop,
+      leaveWoop,
       sendMessage,
       completeWoop,
       rateUser
