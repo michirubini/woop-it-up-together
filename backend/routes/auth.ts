@@ -65,7 +65,25 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const result = await db.query(`
+      SELECT 
+        id,
+        first_name AS "firstName",
+        last_name AS "lastName",
+        age,
+        email,
+        password,  -- ✅ NECESSARIO PER IL CONFRONTO
+        bio,
+        interests,
+        availability,
+        profile_picture AS "profilePicture",
+        photos,
+        rating,
+        badges
+      FROM users
+      WHERE email = $1
+    `, [email]);
+
     const user = result.rows[0];
 
     if (!user) {
@@ -77,26 +95,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Password non corretta." });
     }
 
+    // ✅ Elimina la password prima di restituire i dati
+    delete user.password;
+
     // ✅ Genera token JWT
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "7d" });
 
     res.status(200).json({
       message: "Login riuscito",
-      token, // ✅ restituisci il token al client
-      user: {
-        id: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        age: user.age,
-        email: user.email,
-        bio: user.bio,
-        interests: user.interests,
-        availability: user.availability,
-        profilePicture: user.profile_picture,
-        photos: user.photos,
-        rating: user.rating,
-        badges: user.badges
-      }
+      token,
+      user // già con alias: firstName, profilePicture, ecc.
     });
   } catch (err) {
     console.error("❌ Errore nel login:", err);
@@ -105,3 +113,4 @@ router.post("/login", async (req, res) => {
 });
 
 export = router;
+
