@@ -29,12 +29,13 @@ export interface Woop {
   creator: User;
   interest: string;
   description: string;
-  preferences: {
-    genderPreference: 'stesso' | 'misto' | 'qualsiasi';
-    maxParticipants: number;
-    maxDistance: number;
-    timeFrame: string;
-  };
+preferences: {
+  genderPreference: 'maschio' | 'femmina' | 'entrambi';
+  maxParticipants: number;
+  maxDistance: number;
+  timeFrame: string;
+};
+
   participants: User[];
   status: 'searching' | 'ready' | 'active' | 'completed';
   location?: string;
@@ -200,12 +201,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       creator: currentUser,
       interest: woopData.interest || '',
       description: woopData.description || '',
-      preferences: woopData.preferences || {
-        genderPreference: 'qualsiasi',
-        maxParticipants: 4,
-        maxDistance: 10,
-        timeFrame: 'Oggi'
-      },
+preferences: woopData.preferences || {
+  genderPreference: 'entrambi',
+  maxParticipants: 4,
+  maxDistance: 10,
+  timeFrame: 'Oggi'
+},
+
       participants: [currentUser],
       status: 'searching'
     };
