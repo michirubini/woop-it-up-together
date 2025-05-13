@@ -37,43 +37,58 @@ const Index: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Card className="bg-woop-softPurple">
-              <CardHeader>
-                <CardTitle>Trova subito amici</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Cerca persone con i tuoi stessi interessi nelle vicinanze</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-woop-softPurple">
-              <CardHeader>
-                <CardTitle>Condividi passioni</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Sport, hobby, eventi e tanto altro in un solo click</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-woop-softPurple">
-              <CardHeader>
-                <CardTitle>Organizza in un attimo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Niente più gruppi WhatsApp infiniti per organizzarsi</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-woop-softPurple">
-              <CardHeader>
-                <CardTitle>Conosci nuove persone</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>Espandi la tua cerchia di amici con interessi comuni</p>
-              </CardContent>
-            </Card>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+  <Link to="/search">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Search className="mr-2" />
+          Cerca un Woop
+        </CardTitle>
+        <CardDescription>
+          Trova persone per fare attività insieme
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Cerca</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+
+  <Link to="/create-woop">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Plus className="mr-2" />
+          Crea un Woop
+        </CardTitle>
+        <CardDescription>
+          Proponi una nuova attività ad altre persone
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Crea</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+
+  <Link to="/auto-match">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          🤖 Match automatico
+        </CardTitle>
+        <CardDescription>
+          Lascia che WoopIt trovi i partecipanti per te
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Avvia</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+</div>
+
           
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center">
             <Link to="/register">
@@ -97,41 +112,59 @@ const Index: React.FC = () => {
         <p className="text-gray-600">Cosa ti va di fare oggi?</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        <Link to="/search">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Search className="mr-2" />
-                Cerca un Woop
-              </CardTitle>
-              <CardDescription>
-                Trova persone per fare attività insieme
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <Button variant="secondary" className="w-full">Cerca</Button>
-            </CardFooter>
-          </Card>
-        </Link>
-        
-        <Link to="/create-woop">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Plus className="mr-2" />
-                Crea un Woop
-              </CardTitle>
-              <CardDescription>
-                Proponi una nuova attività agli altri
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <Button variant="secondary" className="w-full">Crea</Button>
-            </CardFooter>
-          </Card>
-        </Link>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+  <Link to="/search">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Search className="mr-2" />
+          Cerca un Woop
+        </CardTitle>
+        <CardDescription>
+          Trova persone per fare attività insieme
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Cerca</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+
+  <Link to="/create-woop">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Plus className="mr-2" />
+          Crea un Woop
+        </CardTitle>
+        <CardDescription>
+          Proponi una nuova attività ad altre persone
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Crea</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+
+  <Link to="/auto-match">
+    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Plus className="mr-2" />
+          Match automatico
+        </CardTitle>
+        <CardDescription>
+          Lascia che WoopIt trovi i partecipanti per te
+        </CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="secondary" className="w-full">Avvia</Button>
+      </CardFooter>
+    </Card>
+  </Link>
+</div>
+
       
       {readyWoops.length > 0 && (
         <div className="mb-8">
