@@ -24,10 +24,11 @@ router.get("/", async (_req, res) => {
     `);
 
     res.status(200).json({ users: result.rows });
-  } catch (err) {
-    console.error("❌ Errore nel recupero utenti:", err);
+  } catch (err: any) {
+    console.error("❌ Errore nel recupero utenti:", err.message);
     res.status(500).json({ error: "Errore interno nel recupero utenti" });
   }
+
 });
 
 // PATCH /api/users/:id/photo

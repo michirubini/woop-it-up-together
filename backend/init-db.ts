@@ -24,6 +24,31 @@ async function createTablesSafely() {
     );
   `);
 
+  // 🔧 Aggiunta colonne mancanti se la tabella esiste già
+  await db.query(`DO $$ BEGIN
+    BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS rating REAL;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS badges TEXT[];
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS photos TEXT[];
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
   // 💡 COMMUNITY IDEAS
   await db.query(`
     CREATE TABLE IF NOT EXISTS community_ideas (
@@ -105,4 +130,6 @@ async function createTablesSafely() {
 createTablesSafely().catch((err) => {
   console.error("❌ Errore nella creazione delle tabelle:", err);
 });
+
+
 
