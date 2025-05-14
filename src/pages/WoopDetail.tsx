@@ -269,83 +269,83 @@ const handleDeleteWoop = async () => {
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-center text-gray-500 py-4">
-                      Nessun messaggio ancora. Inizia a chattare!
-                    </p>
-                  )}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 py-4">
+                        Nessun messaggio ancora. Inizia a chattare!
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Scrivi un messaggio..."
+                      className="mr-2"
+                    />
+                    <Button 
+                      size="icon"
+                      onClick={handleSendMessage}
+                      disabled={!message.trim()}
+                    >
+                      <Send size={18} />
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Scrivi un messaggio..."
-                    className="mr-2"
-                  />
-                  <Button 
-                    size="icon"
-                    onClick={handleSendMessage}
-                    disabled={!message.trim()}
-                  >
-                    <Send size={18} />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-        <CardFooter>
-          {woop.status !== 'completed' ? (
-            <div className="w-full flex flex-col space-y-3">
-  {isCreator && (
-  <AlertDialog>
-    <AlertDialogTrigger asChild>
-      <Button variant="destructive" className="w-full">
-        Elimina Woop
+              </>
+            )}
+          </CardContent>
+<CardFooter>
+  {woop.status !== 'completed' ? (
+    <div className="w-full flex flex-col space-y-3">
+      {isCreator && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="w-full">
+              Elimina Woop
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Questa azione è irreversibile. Il Woop verrà eliminato definitivamente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteWoop}>Elimina</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isParticipant && (
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={() => {
+            leaveWoop(woop.id);
+            navigate('/');
+          }}
+        >
+          Esci dal Woop
+        </Button>
+      )}
+
+      {/* ✅ Torna indietro SEMPRE visibile */}
+      <Button className="w-full" variant="outline" onClick={() => navigate(-1)}>
+        Torna indietro
       </Button>
-    </AlertDialogTrigger>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-        <AlertDialogDescription>
-          Questa azione è irreversibile. Il Woop verrà eliminato definitivamente.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Annulla</AlertDialogCancel>
-        <AlertDialogAction onClick={handleDeleteWoop}>Elimina</AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-)}
+    </div>
+  ) : showRatings ? (
+    // ... il resto non lo tocco
 
 
-  {isParticipant && (
-    <Button
-      variant="destructive"
-      className="w-full"
-      onClick={() => {
-        leaveWoop(woop.id);
-        navigate('/');
-      }}
-    >
-      Esci dal Woop
-    </Button>
-  )}
-
-  {!isParticipant && (
-    <Button className="w-full" onClick={() => navigate(-1)}>
-      Torna indietro
-    </Button>
-  )}
-</div>
-
-          ) : showRatings ? (
             <div className="w-full">
               <h3 className="text-lg font-medium mb-4">Valuta i partecipanti</h3>
               
