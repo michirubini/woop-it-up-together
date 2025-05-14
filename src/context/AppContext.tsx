@@ -191,32 +191,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toast.info("Logout effettuato");
   };
 
-  const createWoop = (woopData: Partial<Woop>) => {
-    if (!currentUser) {
-      toast.error("Devi effettuare l'accesso per creare un Woop");
-      return;
-    }
+const createWoop = async (woopData: Partial<Woop>) => {
+  if (!currentUser) {
+    toast.error("Devi effettuare l'accesso per creare un Woop");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API}/api/woops/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: woopData.interest,
+        description: woopData.description,
+        user_id: parseInt(currentUser.id),
+        preferences: woopData.preferences
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.error || "Errore creazione Woop");
+
     const newWoop: Woop = {
-      id: `woop-${Date.now().toString().slice(-6)}`,
+      id: `woop-${data.woop}`, // server restituisce un ID numerico, lo normalizziamo
       creator: currentUser,
       interest: woopData.interest || '',
       description: woopData.description || '',
-preferences: woopData.preferences || {
-  genderPreference: 'entrambi',
-  maxParticipants: 4,
-  maxDistance: 10,
-  timeFrame: 'Oggi'
-},
-
+      preferences: woopData.preferences || {
+        genderPreference: 'entrambi',
+        maxParticipants: 4,
+        maxDistance: 10,
+        timeFrame: 'Oggi'
+      },
       participants: [currentUser],
       status: 'searching'
     };
-    setWoops([...woops, newWoop]);
-    toast.success("Woop creato! Stiamo cercando partecipanti...");
-    setTimeout(() => {
-      simulateFoundParticipants(newWoop.id);
-    }, 3000);
-  };
+
+    setWoops(prev => [...prev, newWoop]);
+    toast.success("Woop creato con successo!");
+  } catch (err) {
+    console.error("❌ Errore creazione Woop:", err);
+    toast.error("Errore durante la creazione del Woop");
+  }
+};
+
 
   const simulateFoundParticipants = (woopId: string) => {
     setWoops(prevWoops =>
