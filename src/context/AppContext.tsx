@@ -58,6 +58,7 @@ interface AppContextType {
   sendMessage: (woopId: string, message: string) => void;
   completeWoop: (woopId: string) => void;
     leaveWoop: (woopId: string) => void;
+    refreshParticipants: () => Promise<void>;
   rateUser: (userId: string, rating: number, comment?: string, badges?: string[]) => void;
 }
 
@@ -73,6 +74,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const savedWoops = localStorage.getItem('woopitWoops');
     return savedWoops ? JSON.parse(savedWoops) : [];
   });
+
+useEffect(() => {
+  // Rimuovi localmente i woop dove l'utente NON è più partecipante
+  if (!currentUser) return;
+
+  setWoops(prev =>
+    prev.filter(woop =>
+      woop.participants.some(p => p.id === currentUser.id)
+    )
+  );
+}, [currentUser]);
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -151,7 +164,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
   
-  
+const refreshParticipants = async () => {
+  if (!currentUser) return;
+
+  const updatedWoops = await Promise.all(
+    woops.map(async (w) => {
+      try {
+        const res = await fetch(`${API}/api/participants/${parseInt(w.id.replace('woop-', ''))}`);
+        const participants = await res.json();
+
+        return {
+          ...w,
+          participants,
+        };
+      } catch (err) {
+        console.error(`Errore fetch partecipanti per woop ${w.id}`, err);
+        return w;
+      }
+    })
+  );
+
+  setWoops(updatedWoops);
+};
+
+
+
+
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/register`, {
@@ -214,7 +252,7 @@ const createWoop = async (woopData: Partial<Woop>) => {
     if (!response.ok) throw new Error(data.error || "Errore creazione Woop");
 
     const newWoop: Woop = {
-      id: `woop-${data.woop}`, // server restituisce un ID numerico, lo normalizziamo
+  id: `woop-${data.woop_id}`, // <-- ✅ questa è la chiave corretta ricevuta dal backend
       creator: currentUser,
       interest: woopData.interest || '',
       description: woopData.description || '',
@@ -268,29 +306,8 @@ const createWoop = async (woopData: Partial<Woop>) => {
       toast.error("Devi effettuare l'accesso per partecipare");
       return;
     }
-  const leaveWoop = async (woopId: string) => {
-  if (!currentUser) return;
 
-  const woopNumericId = parseInt(woopId.replace("woop-", ""));
-  const userNumericId = parseInt(currentUser.id);
 
-  try {
-    await fetch(`${API}/api/woops/leave`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        woop_id: woopNumericId,
-        user_id: userNumericId,
-      }),
-    });
-
-    setWoops(prev => prev.filter(w => w.id !== woopId));
-    toast.success("Sei uscito dal Woop!");
-  } catch (error) {
-    console.error("Errore durante l'uscita dal Woop:", error);
-    toast.error("Errore nell'uscita dal Woop");
-  }
-};
 
     const woopNumericId = parseInt(woopId.replace("woop-", "")); // converte in ID numerico se serve
     const userNumericId = parseInt(currentUser.id); // assumi che l'id utente sia un numero nel DB
@@ -349,7 +366,9 @@ const createWoop = async (woopData: Partial<Woop>) => {
     );
   };
 
-  const leaveWoop = async (woopId: string) => {
+// Sostituisci TUTTA la funzione leaveWoop nel tuo AppProvider con questa:
+
+const leaveWoop = async (woopId: string) => {
   if (!currentUser) return;
 
   const woopNumericId = parseInt(woopId.replace("woop-", ""));
@@ -359,17 +378,30 @@ const createWoop = async (woopData: Partial<Woop>) => {
     await fetch(`${API}/api/woops/leave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ woop_id: woopNumericId, user_id: userNumericId })
+      body: JSON.stringify({
+        woop_id: woopNumericId,
+        user_id: userNumericId,
+      }),
     });
 
-    setWoops(prev =>
-      prev.filter(w => 
-        w.id !== woopId || !w.participants.some(p => p.id === currentUser.id)
-      )
+    // ✅ Rimuovi solo dal Woop specifico
+    setWoops(prevWoops =>
+      prevWoops.map(w => {
+        if (w.id === woopId) {
+          const updatedParticipants = w.participants.filter(p => p.id !== currentUser.id);
+          return {
+            ...w,
+            participants: updatedParticipants,
+            status: updatedParticipants.length === 0 ? 'searching' : w.status
+          };
+        }
+        return w;
+      })
     );
+
     toast.success("Sei uscito dal Woop");
   } catch (err) {
-    console.error("Errore uscita woop:", err);
+    console.error("Errore uscita Woop:", err);
     toast.error("Errore durante l'uscita dal Woop");
   }
 };
@@ -413,7 +445,8 @@ const createWoop = async (woopData: Partial<Woop>) => {
       leaveWoop,
       sendMessage,
       completeWoop,
-      rateUser
+      rateUser,
+      refreshParticipants  // 👈 AGGIUNGI QUESTO
     }}>
       {children}
     </AppContext.Provider>
