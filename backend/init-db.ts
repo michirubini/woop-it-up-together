@@ -60,50 +60,52 @@ async function createTablesSafely() {
     );
   `);
 
-  // 📅 WOOPS
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS woops (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT,
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      status TEXT DEFAULT 'active',
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
+// 📅 WOOPS
+await db.query(`
+  CREATE TABLE IF NOT EXISTS woops (
+    id BIGSERIAL PRIMARY KEY,  -- CAMBIATO da SERIAL a BIGSERIAL
+    title TEXT NOT NULL,
+    description TEXT,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT NOW()
+  );
+`);
 
-  // 💬 MESSAGES
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id SERIAL PRIMARY KEY,
-      woop_id INTEGER REFERENCES woops(id) ON DELETE CASCADE,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      text TEXT NOT NULL,
-      timestamp TIMESTAMP DEFAULT NOW()
-    );
-  `);
 
-  // ⭐ RATINGS
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS ratings (
-      id SERIAL PRIMARY KEY,
-      from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      woop_id INTEGER REFERENCES woops(id) ON DELETE CASCADE,
-      rating INTEGER NOT NULL,
-      comment TEXT,
-      badges TEXT[]
-    );
-  `);
+// 💬 MESSAGES
+await db.query(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT NOW()
+  );
+`);
 
-  // 👥 PARTICIPANTS
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS participants (
-      id SERIAL PRIMARY KEY,
-      woop_id INTEGER REFERENCES woops(id) ON DELETE CASCADE,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
-    );
-  `);
+// ⭐ RATINGS
+await db.query(`
+  CREATE TABLE IF NOT EXISTS ratings (
+    id SERIAL PRIMARY KEY,
+    from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL,
+    comment TEXT,
+    badges TEXT[]
+  );
+`);
+
+// 👥 PARTICIPANTS
+await db.query(`
+  CREATE TABLE IF NOT EXISTS participants (
+    id SERIAL PRIMARY KEY,
+    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
 
   // 🤝 MATCH REQUESTS
   await db.query(`

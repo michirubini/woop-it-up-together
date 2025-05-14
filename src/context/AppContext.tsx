@@ -197,7 +197,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
     const newWoop: Woop = {
-      id: `woop-${Date.now()}`,
+      id: `woop-${Date.now().toString().slice(-6)}`,
       creator: currentUser,
       interest: woopData.interest || '',
       description: woopData.description || '',

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { useAppContext } from '@/context/AppContext';
 
 const interestsList = [
   'Calcetto', 'Padel', 'Tennis', 'Beach Volley', 'Basket',
@@ -33,7 +33,7 @@ const timeFrameOptions = [
 ];
 
 const CreateWoop: React.FC = () => {
-  const { currentUser, createWoop } = useAppContext();
+  const { currentUser, createWoop } = useAppContext(); // ✅ corretto
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -92,117 +92,89 @@ const CreateWoop: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="interest">Cosa ti va di fare?</Label>
+              <Select value={formData.interest} onValueChange={(value) => setFormData(prev => ({ ...prev, interest: value }))}>
+                <SelectTrigger id="interest">
+                  <SelectValue placeholder="Seleziona un interesse" />
+                </SelectTrigger>
+                <SelectContent>
+                  {interestsList.map(interest => (
+                    <SelectItem key={interest} value={interest}>{interest}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Interesse */}
-              <div className="space-y-2">
-                <Label htmlFor="interest">Cosa ti va di fare?</Label>
-                <Select
-                  value={formData.interest}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, interest: value }))}
-                >
-                  <SelectTrigger id="interest">
-                    <SelectValue placeholder="Seleziona un interesse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {interestsList.map(interest => (
-                      <SelectItem key={interest} value={interest}>
-                        {interest}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrizione</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleTextChange}
+                placeholder="Descrivi il tuo Woop (es: livello, dettagli, richieste particolari)"
+                rows={3}
+              />
+            </div>
 
-              {/* Descrizione */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrizione</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleTextChange}
-                  placeholder="Descrivi il tuo Woop (es: livello, dettagli, richieste particolari)"
-                  rows={3}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="genderPreference">Preferenza partecipanti</Label>
+              <Select value={formData.genderPreference} onValueChange={(value) => setFormData(prev => ({ ...prev, genderPreference: value }))}>
+                <SelectTrigger id="genderPreference">
+                  <SelectValue placeholder="Seleziona un genere" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="maschio">Maschio</SelectItem>
+                  <SelectItem value="femmina">Femmina</SelectItem>
+                  <SelectItem value="entrambi">Entrambi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Genere */}
-              <div className="space-y-2">
-                <Label htmlFor="genderPreference">Preferenza partecipanti</Label>
-                <Select
-                  value={formData.genderPreference}
-                  onValueChange={(value) =>
-                    setFormData(prev => ({ ...prev, genderPreference: value }))
-                  }
-                >
-                  <SelectTrigger id="genderPreference">
-                    <SelectValue placeholder="Seleziona un genere" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="maschio">Maschio</SelectItem>
-                    <SelectItem value="femmina">Femmina</SelectItem>
-                    <SelectItem value="entrambi">Entrambi</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="maxParticipants">Numero massimo di partecipanti</Label>
+                <span className="text-sm font-medium">{formData.maxParticipants}</span>
               </div>
+              <Slider
+                id="maxParticipants"
+                min={2}
+                max={20}
+                step={1}
+                value={[formData.maxParticipants]}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, maxParticipants: value[0] }))}
+              />
+            </div>
 
-              {/* Max partecipanti */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="maxParticipants">Numero massimo di partecipanti</Label>
-                  <span className="text-sm font-medium">{formData.maxParticipants}</span>
-                </div>
-                <Slider
-                  id="maxParticipants"
-                  min={2}
-                  max={20}
-                  step={1}
-                  value={[formData.maxParticipants]}
-                  onValueChange={(value) =>
-                    setFormData(prev => ({ ...prev, maxParticipants: value[0] }))
-                  }
-                />
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="maxDistance">Distanza massima (km)</Label>
+                <span className="text-sm font-medium">{formData.maxDistance} km</span>
               </div>
+              <Slider
+                id="maxDistance"
+                min={1}
+                max={50}
+                step={1}
+                value={[formData.maxDistance]}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, maxDistance: value[0] }))}
+              />
+            </div>
 
-              {/* Distanza massima */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="maxDistance">Distanza massima (km)</Label>
-                  <span className="text-sm font-medium">{formData.maxDistance} km</span>
-                </div>
-                <Slider
-                  id="maxDistance"
-                  min={1}
-                  max={50}
-                  step={1}
-                  value={[formData.maxDistance]}
-                  onValueChange={(value) =>
-                    setFormData(prev => ({ ...prev, maxDistance: value[0] }))
-                  }
-                />
-              </div>
-
-              {/* Quando */}
-              <div className="space-y-2">
-                <Label htmlFor="timeFrame">Quando?</Label>
-                <Select
-                  value={formData.timeFrame}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, timeFrame: value }))}
-                >
-                  <SelectTrigger id="timeFrame">
-                    <SelectValue placeholder="Seleziona quando" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeFrameOptions.map(option => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="timeFrame">Quando?</Label>
+              <Select value={formData.timeFrame} onValueChange={(value) => setFormData(prev => ({ ...prev, timeFrame: value }))}>
+                <SelectTrigger id="timeFrame">
+                  <SelectValue placeholder="Seleziona quando" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeFrameOptions.map(option => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <Button type="submit" className="w-full mt-6">
@@ -216,3 +188,4 @@ const CreateWoop: React.FC = () => {
 };
 
 export default CreateWoop;
+
