@@ -50,6 +50,7 @@ interface AppContextType {
   currentUser: User | null;
   woops: Woop[];
   setCurrentUser: (user: User | null) => void;
+  setWoops: React.Dispatch<React.SetStateAction<Woop[]>>;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: Partial<User>, password: string) => Promise<boolean>;
   logout: () => void;
@@ -74,17 +75,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const savedWoops = localStorage.getItem('woopitWoops');
     return savedWoops ? JSON.parse(savedWoops) : [];
   });
-
-useEffect(() => {
-  // Rimuovi localmente i woop dove l'utente NON è più partecipante
-  if (!currentUser) return;
-
-  setWoops(prev =>
-    prev.filter(woop =>
-      woop.participants.some(p => p.id === currentUser.id)
-    )
-  );
-}, [currentUser]);
 
 
   useEffect(() => {
@@ -384,15 +374,14 @@ const leaveWoop = async (woopId: string) => {
       }),
     });
 
-    // ✅ Rimuovi solo dal Woop specifico
-    setWoops(prevWoops =>
-      prevWoops.map(w => {
+    setWoops(prev =>
+      prev.map(w => {
         if (w.id === woopId) {
-          const updatedParticipants = w.participants.filter(p => p.id !== currentUser.id);
+          const updated = w.participants.filter(p => p.id !== currentUser.id);
           return {
             ...w,
-            participants: updatedParticipants,
-            status: updatedParticipants.length === 0 ? 'searching' : w.status
+            participants: updated,
+            status: updated.length === 0 ? 'searching' : w.status
           };
         }
         return w;
@@ -405,6 +394,8 @@ const leaveWoop = async (woopId: string) => {
     toast.error("Errore durante l'uscita dal Woop");
   }
 };
+
+
 
 
   const completeWoop = async (woopId: string) => {
@@ -434,20 +425,22 @@ const leaveWoop = async (woopId: string) => {
 
   return (
     <AppContext.Provider value={{
-      currentUser,
-      woops,
-      setCurrentUser,
-      login,
-      register,
-      logout,
-      createWoop,
-      joinWoop,
-      leaveWoop,
-      sendMessage,
-      completeWoop,
-      rateUser,
-      refreshParticipants  // 👈 AGGIUNGI QUESTO
-    }}>
+  currentUser,
+  woops,
+  setCurrentUser,
+  setWoops, // <-- AGGIUNGI QUESTO
+  login,
+  register,
+  logout,
+  createWoop,
+  joinWoop,
+  leaveWoop,
+  sendMessage,
+  completeWoop,
+  rateUser,
+  refreshParticipants
+}}>
+
       {children}
     </AppContext.Provider>
   );

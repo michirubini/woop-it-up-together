@@ -5,7 +5,12 @@ import userRoutes from './routes/users';
 import matchRequestsRoutes from "./routes/matchRequests";
 import { saveMessage, getMessages } from './api/messages';
 import { joinWoop, getParticipants } from './api/participants';
-import { completeWoop, leaveWoop, createWoopInDb } from './api/woops';
+import {
+  completeWoop,
+  leaveWoop,
+  createWoopInDb,
+  deleteWoop             // ✅ IMPORTATO QUI
+} from './api/woops';
 
 const app = express();
 const PORT = 3001;
@@ -79,6 +84,22 @@ app.post('/api/woops/complete', async (req, res) => {
   } catch (error) {
     console.error('❌ Errore completamento Woop:', error);
     res.status(500).json({ error: 'Errore nel completamento Woop' });
+  }
+});
+
+// ✅ Elimina un Woop
+app.post('/api/woops/delete', async (req, res) => {
+  const { woop_id } = req.body;
+  if (!woop_id) {
+    return res.status(400).json({ error: "woop_id è richiesto" });
+  }
+
+  try {
+    await deleteWoop(woop_id);
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("❌ Errore eliminazione Woop:", err);
+    res.status(500).json({ error: "Errore durante l'eliminazione del Woop" });
   }
 });
 

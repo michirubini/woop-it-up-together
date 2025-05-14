@@ -52,3 +52,9 @@ export async function createWoopInDb(
 
   return woopId;
 }
+
+// ✅ ELIMINA UN WOOP
+export async function deleteWoop(woop_id: number): Promise<void> {
+  await db.query(`DELETE FROM participants WHERE woop_id = $1`, [woop_id]);
+  await db.query(`DELETE FROM woops WHERE id = $1`, [woop_id]);
+}

@@ -32,7 +32,8 @@ import { Send, MapPin, Clock, Users, MessageSquare, Star, Award } from 'lucide-r
 
 const WoopDetail: React.FC = () => {
   const { woopId } = useParams<{ woopId: string }>();
-const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop } = useAppContext();
+const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop, setWoops } = useAppContext();
+
 
 
   const navigate = useNavigate();
@@ -85,9 +86,30 @@ const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop } = u
   };
   
   const handleCompleteWoop = () => {
-    completeWoop(woop.id);
-    setShowRatings(true);
-  };
+  completeWoop(woop.id);
+  setShowRatings(true);
+};
+
+const handleDeleteWoop = async () => {
+  try {
+    await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/woops/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ woop_id: parseInt(woop.id.replace("woop-", "")) }),
+    });
+
+    // 🔥 Rimuovi anche dal contesto
+    setWoops(prev => prev.filter(w => w.id !== woop.id));
+
+    toast.success("Woop eliminato con successo!");
+    navigate('/');
+  } catch (err) {
+    console.error("Errore eliminazione Woop:", err);
+    toast.error("Errore durante l'eliminazione del Woop");
+  }
+};
+
+
   
   const handleRatingChange = (userId: string, key: 'rating' | 'comment' | 'badges', value: any) => {
     setRatings(prev => ({
@@ -98,6 +120,7 @@ const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop } = u
       }
     }));
   };
+  
   
   const handleToggleBadge = (userId: string, badge: string) => {
     setRatings(prev => {
@@ -279,11 +302,28 @@ const { currentUser, woops, sendMessage, completeWoop, rateUser, leaveWoop } = u
         <CardFooter>
           {woop.status !== 'completed' ? (
             <div className="w-full flex flex-col space-y-3">
-  {isCreator && woop.status === 'active' && (
-    <AlertDialog>
-      ...
-    </AlertDialog>
-  )}
+  {isCreator && (
+  <AlertDialog>
+    <AlertDialogTrigger asChild>
+      <Button variant="destructive" className="w-full">
+        Elimina Woop
+      </Button>
+    </AlertDialogTrigger>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Questa azione è irreversibile. Il Woop verrà eliminato definitivamente.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Annulla</AlertDialogCancel>
+        <AlertDialogAction onClick={handleDeleteWoop}>Elimina</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
+
 
   {isParticipant && (
     <Button
