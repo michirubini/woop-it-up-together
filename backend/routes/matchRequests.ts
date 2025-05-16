@@ -1,6 +1,6 @@
 import express from "express";
 import db from "../db";
-import authMiddleware from "../middleware/auth"; // ✅ percorso corretto
+import { authenticateToken as authMiddleware } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -95,4 +95,3 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 export default router;
-

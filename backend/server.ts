@@ -9,8 +9,9 @@ import {
   completeWoop,
   leaveWoop,
   createWoopInDb,
-  deleteWoop             // ✅ IMPORTATO QUI
+  deleteWoop
 } from './api/woops';
+import { authenticateToken as authMiddleware } from './middleware/auth'; // ✅ import middleware
 
 const app = express();
 const PORT = 3001;
@@ -23,7 +24,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/matchrequests', matchRequestsRoutes);
 
 // ✅ Crea un nuovo Woop
-app.post('/api/woops/create', async (req, res) => {
+app.post('/api/woops/create', authMiddleware, async (req, res) => {
   const { title, description, user_id, preferences } = req.body;
 
   if (!title || !description || !user_id) {
@@ -40,7 +41,7 @@ app.post('/api/woops/create', async (req, res) => {
 });
 
 // ✅ Partecipazione a un Woop
-app.post('/api/participants', async (req, res) => {
+app.post('/api/participants', authMiddleware, async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
     return res.status(400).json({ error: 'woop_id e user_id sono richiesti' });
@@ -56,7 +57,7 @@ app.post('/api/participants', async (req, res) => {
 });
 
 // ✅ Uscita da un Woop
-app.post('/api/woops/leave', async (req, res) => {
+app.post('/api/woops/leave', authMiddleware, async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
     return res.status(400).json({ error: "woop_id e user_id sono richiesti" });
@@ -72,7 +73,7 @@ app.post('/api/woops/leave', async (req, res) => {
 });
 
 // ✅ Completa un Woop
-app.post('/api/woops/complete', async (req, res) => {
+app.post('/api/woops/complete', authMiddleware, async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
     return res.status(400).json({ error: 'woop_id è richiesto' });
@@ -88,7 +89,7 @@ app.post('/api/woops/complete', async (req, res) => {
 });
 
 // ✅ Elimina un Woop
-app.post('/api/woops/delete', async (req, res) => {
+app.post('/api/woops/delete', authMiddleware, async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
     return res.status(400).json({ error: "woop_id è richiesto" });
@@ -104,7 +105,7 @@ app.post('/api/woops/delete', async (req, res) => {
 });
 
 // ✅ Recupera partecipanti
-app.get('/api/participants/:woop_id', async (req, res) => {
+app.get('/api/participants/:woop_id', authMiddleware, async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
   if (isNaN(woop_id)) {
     return res.status(400).json({ error: 'woop_id deve essere un numero' });
@@ -120,7 +121,7 @@ app.get('/api/participants/:woop_id', async (req, res) => {
 });
 
 // ✅ Messaggi
-app.post('/api/messages', async (req, res) => {
+app.post('/api/messages', authMiddleware, async (req, res) => {
   const { woop_id, user_id, text } = req.body;
   if (!woop_id || !user_id || !text) {
     return res.status(400).json({ error: 'woop_id, user_id e text sono richiesti' });
@@ -135,7 +136,7 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-app.get('/api/messages/:woop_id', async (req, res) => {
+app.get('/api/messages/:woop_id', authMiddleware, async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
   if (isNaN(woop_id)) {
     return res.status(400).json({ error: 'woop_id deve essere un numero' });
