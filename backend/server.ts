@@ -1,8 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import matchRequestsRoutes from "./routes/matchRequests";
+import woopRoutes from "./routes/woops"; // <--- AGGIUNGI QUESTO!
+
 import { saveMessage, getMessages } from './api/messages';
 import { joinWoop, getParticipants } from './api/participants';
 import {
@@ -11,7 +14,7 @@ import {
   createWoopInDb,
   deleteWoop
 } from './api/woops';
-import { authenticateToken as authMiddleware } from './middleware/auth'; // ✅ import middleware
+import { authenticateToken as authMiddleware } from './middleware/auth';
 
 const app = express();
 const PORT = 3001;
@@ -22,6 +25,9 @@ app.use(express.json());
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matchrequests', matchRequestsRoutes);
+
+// 🟢 TUTTE LE ROTTE /api/woops (GET e altre da router)
+app.use('/api/woops', woopRoutes);
 
 // ✅ Crea un nuovo Woop
 app.post('/api/woops/create', authMiddleware, async (req, res) => {
@@ -151,6 +157,7 @@ app.get('/api/messages/:woop_id', authMiddleware, async (req, res) => {
   }
 });
 
+// Home
 app.get('/', (_req, res) => {
   res.send('🟢 Backend WoopIt attivo!');
 });
@@ -158,4 +165,3 @@ app.get('/', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server in ascolto su http://localhost:${PORT}`);
 });
-

@@ -69,10 +69,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const savedUser = localStorage.getItem('woopitCurrentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  const [woops, setWoops] = useState<Woop[]>(() => {
-    const savedWoops = localStorage.getItem('woopitWoops');
-    return savedWoops ? JSON.parse(savedWoops) : [];
-  });
+  const [woops, setWoops] = useState<Woop[]>([]);
+
+// ⬇️ METTI QUI QUESTO PEZZO! ⬇️
+useEffect(() => {
+  if (!currentUser) return; // Solo se loggato
+  const fetchWoops = async () => {
+    try {
+      const res = await fetch(`${API}/api/woops`, { headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.woops)) {
+        setWoops(data.woops); // Aggiorna stato SOLO con i dati veri dal backend
+      }
+    } catch (err) {
+      console.error("Errore caricamento woops:", err);
+    }
+  };
+  fetchWoops();
+}, [currentUser]);
+
 
   // ✅ Intestazioni con token JWT
   const authHeaders = () => {
@@ -101,9 +116,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     fetchUsers();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('woopitWoops', JSON.stringify(woops));
-  }, [woops]);
+  
 
   useEffect(() => {
     if (currentUser) {
