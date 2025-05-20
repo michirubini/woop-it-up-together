@@ -61,12 +61,12 @@ router.post("/", authMiddleware, async (req, res) => {
       return distance <= Math.min(radius_km, r.radius_km);
     });
 
-    // 3. Se trova match compatibile → crea woop
+    // 3. Se trova match compatibile → crea woop con is_mock = false
     if (compatible) {
       const woopRes = await db.query(
-        `INSERT INTO woops (title, description, user_id)
-         VALUES ($1, $2, $3) RETURNING id`,
-        [`[AUTO] ${activity}`, `Match automatico per ${activity}`, userId]
+        `INSERT INTO woops (title, description, user_id, is_mock)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [`[AUTO] ${activity}`, `Match automatico per ${activity}`, userId, false]
       );
       const woopId = woopRes.rows[0].id;
 
@@ -95,4 +95,5 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 export default router;
+
 

@@ -192,32 +192,34 @@ const handleDeleteWoop = async () => {
             </div>
           </div>
           
-          <Separator className="my-4" />
-          
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3">Partecipanti</h3>
-            <div className="flex flex-wrap gap-3">
-              {woop.participants.map(participant => (
-                <div key={participant.id} className="flex items-center space-x-2">
-                  <Avatar>
-                    {participant.profilePicture ? (
-                      <AvatarImage src={participant.profilePicture} alt={participant.firstName} />
-                    ) : (
-                      <AvatarFallback>
-                        {participant.firstName.charAt(0)}{participant.lastName.charAt(0)}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{participant.firstName}</p>
-                    {participant.id === woop.creator.id && (
-                      <Badge variant="outline" className="text-xs">Organizzatore</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+<Separator className="my-4" />
+
+<div className="mb-6">
+  <h3 className="text-lg font-medium mb-3">Partecipanti</h3>
+  <div className="flex flex-wrap gap-3">
+    {woop.participants.map(participant => (
+      <div key={participant.id} className="flex items-center space-x-2">
+        <Avatar>
+          {participant.profilePicture ? (
+            <AvatarImage src={participant.profilePicture} alt={participant.firstName} />
+          ) : (
+            <AvatarFallback>
+              {(participant.firstName?.charAt(0) || "")}
+              {(participant.lastName?.charAt(0) || "")}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <div>
+          <p className="text-sm font-medium">{participant.firstName}</p>
+          {participant.id === woop.creator.id && (
+            <Badge variant="outline" className="text-xs">Organizzatore</Badge>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
           
           {(isParticipant || isCreator) && woop.status !== 'completed' && (
             <>
@@ -346,29 +348,33 @@ const handleDeleteWoop = async () => {
     // ... il resto non lo tocco
 
 
-            <div className="w-full">
-              <h3 className="text-lg font-medium mb-4">Valuta i partecipanti</h3>
-              
-              <div className="space-y-4">
-                {woop.participants
-                  .filter(p => p.id !== currentUser.id)
-                  .map(participant => (
-                    <Card key={participant.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center mb-3">
-                          <Avatar className="h-10 w-10 mr-3">
-                            {participant.profilePicture ? (
-                              <AvatarImage src={participant.profilePicture} alt={participant.firstName} />
-                            ) : (
-                              <AvatarFallback>
-                                {participant.firstName.charAt(0)}{participant.lastName.charAt(0)}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{participant.firstName} {participant.lastName}</p>
-                          </div>
-                        </div>
+<div className="w-full">
+  <h3 className="text-lg font-medium mb-4">Valuta i partecipanti</h3>
+  
+  <div className="space-y-4">
+    {woop.participants
+      .filter(p => p.id !== currentUser.id)
+      .map(participant => (
+        <Card key={participant.id}>
+          <CardContent className="pt-6">
+            <div className="flex items-center mb-3">
+              <Avatar className="h-10 w-10 mr-3">
+                {participant.profilePicture ? (
+                  <AvatarImage src={participant.profilePicture} alt={participant.firstName} />
+                ) : (
+                  <AvatarFallback>
+                    {(participant.firstName?.charAt(0) || "")}
+                    {(participant.lastName?.charAt(0) || "")}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <div>
+                <p className="font-medium">
+                  {(participant.firstName || "")} {(participant.lastName || "")}
+                </p>
+              </div>
+            </div>
+
                         
                         <div className="mb-3">
                           <div className="flex items-center mb-1">

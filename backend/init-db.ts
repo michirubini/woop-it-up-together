@@ -24,28 +24,24 @@ async function createTablesSafely() {
     );
   `);
 
-  // 🔧 Aggiunta colonne mancanti se la tabella esiste già
+  // 🔧 Aggiunta colonne utenti (se mancanti)
   await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS rating REAL;
+    BEGIN ALTER TABLE users ADD COLUMN IF NOT EXISTS rating REAL;
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
   await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS badges TEXT[];
+    BEGIN ALTER TABLE users ADD COLUMN IF NOT EXISTS badges TEXT[];
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
   await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
+    BEGIN ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
   await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS photos TEXT[];
+    BEGIN ALTER TABLE users ADD COLUMN IF NOT EXISTS photos TEXT[];
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
@@ -60,52 +56,56 @@ async function createTablesSafely() {
     );
   `);
 
-// 📅 WOOPS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS woops (
-    id BIGSERIAL PRIMARY KEY,  -- CAMBIATO da SERIAL a BIGSERIAL
-    title TEXT NOT NULL,
-    description TEXT,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    status TEXT DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW()
-  );
-`);
+  // 📅 WOOPS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS woops (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
 
+  // ✅ AGGIUNGIAMO is_mock SOLO SE NON ESISTE
+  await db.query(`DO $$ BEGIN
+    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS is_mock BOOLEAN DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
 
-// 💬 MESSAGES
-await db.query(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT NOW()
-  );
-`);
+  // 💬 MESSAGES
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      timestamp TIMESTAMP DEFAULT NOW()
+    );
+  `);
 
-// ⭐ RATINGS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS ratings (
-    id SERIAL PRIMARY KEY,
-    from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    rating INTEGER NOT NULL,
-    comment TEXT,
-    badges TEXT[]
-  );
-`);
+  // ⭐ RATINGS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ratings (
+      id SERIAL PRIMARY KEY,
+      from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      comment TEXT,
+      badges TEXT[]
+    );
+  `);
 
-// 👥 PARTICIPANTS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS participants (
-    id SERIAL PRIMARY KEY,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
-  );
-`);
-
+  // 👥 PARTICIPANTS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS participants (
+      id SERIAL PRIMARY KEY,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
 
   // 🤝 MATCH REQUESTS
   await db.query(`
@@ -132,6 +132,7 @@ await db.query(`
 createTablesSafely().catch((err) => {
   console.error("❌ Errore nella creazione delle tabelle:", err);
 });
+
 
 
 
