@@ -8,10 +8,11 @@ router.get("/", async (_req, res) => {
   try {
     const result = await db.query(`
       SELECT * FROM woops
-      WHERE is_mock = false OR is_mock IS NULL
+      WHERE (is_mock = false OR is_mock IS NULL)
+      AND user_id IS NOT NULL
       ORDER BY created_at DESC
     `);
-    res.status(200).json(result.rows); // Array di oggetti Woop
+    res.status(200).json(result.rows);
   } catch (err) {
     console.error("❌ Errore recupero Woops:", err);
     res.status(500).json({ error: "Errore nel recupero dei Woops" });
@@ -20,9 +21,10 @@ router.get("/", async (_req, res) => {
 
 // POST /api/woops - Crea un nuovo Woop reale
 router.post("/", async (req, res) => {
-  const { title, description, user_id } = req.body;
+  const { title, description, user_id, userId } = req.body;
+  const finalUserId = user_id || userId;
 
-  if (!title || !description || !user_id) {
+  if (!title || !description || !finalUserId) {
     return res.status(400).json({ error: 'title, description e user_id sono richiesti' });
   }
 
@@ -31,7 +33,7 @@ router.post("/", async (req, res) => {
       `INSERT INTO woops (title, description, user_id, is_mock)
        VALUES ($1, $2, $3, false)
        RETURNING *`,
-      [title, description, user_id]
+      [title, description, finalUserId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -41,3 +43,4 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
+
