@@ -66,7 +66,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [mockUsers, setMockUsers] = useState<User[]>([]);
+
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('woopitCurrentUser');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -76,23 +76,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return savedWoops ? JSON.parse(savedWoops) : [];
   });
 
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`${API}/api/users`);
-        const data = await res.json();
-        if (res.ok) {
-          setMockUsers(data.users);
-        } else {
-          console.error("Errore nel caricamento utenti:", data.error);
-        }
-      } catch (error) {
-        console.error("Errore fetch utenti:", error);
+useEffect(() => {
+  const fetchWoops = async () => {
+    try {
+      const res = await fetch(`${API}/api/woops`);
+      const data = await res.json();
+      if (res.ok) {
+        setWoops(data.woops.map((woop: any) => ({
+          ...woop,
+          id: `woop-${woop.id}`,
+        })));
+      } else {
+        console.error("Errore nel caricamento dei Woop:", data.error);
       }
-    };
-    fetchUsers();
-  }, []);
+    } catch (error) {
+      console.error("Errore fetch Woop:", error);
+    }
+  };
+  fetchWoops();
+}, []);
+
 
   useEffect(() => {
     localStorage.setItem('woopitWoops', JSON.stringify(woops));
@@ -265,31 +268,6 @@ const createWoop = async (woopData: Partial<Woop>) => {
 };
 
 
-  const simulateFoundParticipants = (woopId: string) => {
-    setWoops(prevWoops =>
-      prevWoops.map(w => {
-        if (w.id === woopId) {
-          const potentialParticipants = mockUsers.filter(
-            u => u.id !== currentUser?.id && u.interests.includes(w.interest)
-          );
-          const numToAdd = Math.min(
-            w.preferences.maxParticipants - 1,
-            potentialParticipants.length
-          );
-          const additionalParticipants = potentialParticipants.slice(0, numToAdd);
-          return {
-            ...w,
-            status: 'ready',
-            participants: [...w.participants, ...additionalParticipants]
-          };
-        }
-        return w;
-      })
-    );
-    if (currentUser) {
-      toast.success('Il tuo Woop è pronto! Abbiamo trovato dei partecipanti interessati.');
-    }
-  };
 
   const joinWoop = async (woopId: string) => {
     if (!currentUser) {
