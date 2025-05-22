@@ -54,25 +54,26 @@ const Community: React.FC = () => {
     const fetchIdeas = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:3001/api/woops');
+        const res = await fetch('http://localhost:3001/api/community-ideas');
         if (!res.ok) throw new Error();
         const data = await res.json();
 
         // Mappa dati se necessario (adatta questa parte alla risposta reale)
-        const formatted = data.map((item: any) => ({
-          id: String(item.id),
-          title: item.interest || item.title,
-          description: item.description,
-          creator: {
-            id: String(item.creator?.id ?? item.user_id ?? "0"),
-            firstName: item.creator?.firstName ?? "",
-            lastName: item.creator?.lastName ?? "",
-            profilePicture: item.creator?.profilePicture ?? "",
-          },
-          votes: item.votes ?? 0,      // Aggiusta se hai una colonna voti!
-          comments: item.comments ?? 0, // Idem
-          isTopIdea: false,             // Gestisci la logica "Top" se vuoi
-        }));
+ const formatted = data.map((item: any) => ({
+  id: String(item.id),
+  title: item.title,
+  description: item.description,
+  creator: {
+    id: String(item.user_id ?? "0"),
+    firstName: item.first_name ?? "",
+    lastName: item.last_name ?? "",
+    profilePicture: item.profile_picture ?? "",
+  },
+  votes: 0,        // Se non li hai ancora, lasciali a zero
+  comments: 0,     // Idem
+  isTopIdea: false,
+}));
+
         setIdeas(formatted);
       } catch (err) {
         toast.error("Errore nel caricamento delle idee");
@@ -96,21 +97,16 @@ const Community: React.FC = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3001/api/woops', {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newIdea.title,
-          description: newIdea.description,
-          userId: currentUser.id,
-          preferences: {
-            genderPreference: "entrambi",
-            maxParticipants: 4,
-            maxDistance: 10,
-            timeFrame: "Oggi"
-          }
-        }),
-      });
+const res = await fetch('http://localhost:3001/api/community-ideas', {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    title: newIdea.title,
+    description: newIdea.description,
+    user_id: currentUser.id,
+  }),
+});
+
       if (!res.ok) throw new Error();
       const savedIdea = await res.json();
       // Mappa la risposta del backend (adatta se serve!)

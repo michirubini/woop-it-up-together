@@ -1,15 +1,20 @@
 import express from 'express';
 import cors from 'cors';
+
+// Importa router modulari
+import woopsRoutes from './routes/woops';             // /api/woops
+import communityIdeasRoutes from './routes/communityIdeas'; // /api/community-ideas
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
-import matchRequestsRoutes from "./routes/matchRequests";
+import matchRequestsRoutes from './routes/matchRequests';
+
 import { saveMessage, getMessages } from './api/messages';
 import { joinWoop, getParticipants } from './api/participants';
 import {
   completeWoop,
   leaveWoop,
   createWoopInDb,
-  deleteWoop             // ✅ IMPORTATO QUI
+  deleteWoop
 } from './api/woops';
 
 const app = express();
@@ -18,11 +23,15 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// MOUNT ROUTES
+app.use('/api/woops', woopsRoutes);                       // Tutto sulle woop
+app.use('/api/community-ideas', communityIdeasRoutes);    // Tutto sulle idee community
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matchrequests', matchRequestsRoutes);
 
-// ✅ Crea un nuovo Woop
+// --- Legacy/extra API ---
+// Crea un nuovo Woop (non serve se usi già POST /api/woops)
 app.post('/api/woops/create', async (req, res) => {
   const { title, description, user_id, preferences } = req.body;
 
@@ -39,7 +48,7 @@ app.post('/api/woops/create', async (req, res) => {
   }
 });
 
-// ✅ Partecipazione a un Woop
+// Partecipazione a un Woop
 app.post('/api/participants', async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
@@ -55,7 +64,7 @@ app.post('/api/participants', async (req, res) => {
   }
 });
 
-// ✅ Uscita da un Woop
+// Uscita da un Woop
 app.post('/api/woops/leave', async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
@@ -71,7 +80,7 @@ app.post('/api/woops/leave', async (req, res) => {
   }
 });
 
-// ✅ Completa un Woop
+// Completa un Woop
 app.post('/api/woops/complete', async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
@@ -87,7 +96,7 @@ app.post('/api/woops/complete', async (req, res) => {
   }
 });
 
-// ✅ Elimina un Woop
+// Elimina un Woop
 app.post('/api/woops/delete', async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
@@ -103,7 +112,7 @@ app.post('/api/woops/delete', async (req, res) => {
   }
 });
 
-// ✅ Recupera partecipanti
+// Recupera partecipanti
 app.get('/api/participants/:woop_id', async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
   if (isNaN(woop_id)) {
@@ -119,7 +128,7 @@ app.get('/api/participants/:woop_id', async (req, res) => {
   }
 });
 
-// ✅ Messaggi
+// Messaggi
 app.post('/api/messages', async (req, res) => {
   const { woop_id, user_id, text } = req.body;
   if (!woop_id || !user_id || !text) {
@@ -150,6 +159,7 @@ app.get('/api/messages/:woop_id', async (req, res) => {
   }
 });
 
+// HOME semplice
 app.get('/', (_req, res) => {
   res.send('🟢 Backend WoopIt attivo!');
 });
@@ -157,4 +167,3 @@ app.get('/', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server in ascolto su http://localhost:${PORT}`);
 });
-

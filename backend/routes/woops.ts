@@ -1,40 +1,43 @@
-import express = require("express");
-import db = require("../db");
+import { Router } from "express";
+import db from "../db";
 
-const router = express.Router();
+const router = Router();
 
-// GET /api/woops
-router.get("/woops", async (_req: any, res: any) => {
+// GET /api/woops - Recupera tutti i Woop reali (no mock)
+router.get("/", async (_req, res) => {
   try {
-    // 👇 Mostra solo Woop reali (mock esclusi)
     const result = await db.query(`
       SELECT * FROM woops
-      WHERE is_mock = false
+      WHERE is_mock = false OR is_mock IS NULL
       ORDER BY created_at DESC
     `);
-    res.status(200).json({ woops: result.rows });
+    res.status(200).json(result.rows); // Array di oggetti Woop
   } catch (err) {
     console.error("❌ Errore recupero Woops:", err);
     res.status(500).json({ error: "Errore nel recupero dei Woops" });
   }
 });
 
-// POST /api/woops
-router.post("/woops", async (req: any, res: any) => {
+// POST /api/woops - Crea un nuovo Woop reale
+router.post("/", async (req, res) => {
   const { title, description, user_id } = req.body;
 
+  if (!title || !description || !user_id) {
+    return res.status(400).json({ error: 'title, description e user_id sono richiesti' });
+  }
+
   try {
-    await db.query(
+    const result = await db.query(
       `INSERT INTO woops (title, description, user_id, is_mock)
-       VALUES ($1, $2, $3, false)`, // 👈 Ogni nuovo woop è reale
+       VALUES ($1, $2, $3, false)
+       RETURNING *`,
       [title, description, user_id]
     );
-    res.status(201).json({ message: "Woop creato" });
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error("❌ Errore creazione Woop:", err);
-    res.status(400).json({ error: "Errore durante la creazione del woop" });
+    res.status(400).json({ error: "Errore durante la creazione del Woop" });
   }
 });
 
-export = router;
-
+export default router;
