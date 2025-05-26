@@ -72,6 +72,23 @@ await db.query(`
   );
 `);
 
+// 🔧 Aggiunta colonne Woops se mancanti (preferenze)
+await db.query(`DO $$ BEGIN
+  BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS gender_preference TEXT; EXCEPTION WHEN duplicate_column THEN END;
+END $$;`);
+
+await db.query(`DO $$ BEGIN
+  BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_participants INTEGER; EXCEPTION WHEN duplicate_column THEN END;
+END $$;`);
+
+await db.query(`DO $$ BEGIN
+  BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_distance INTEGER; EXCEPTION WHEN duplicate_column THEN END;
+END $$;`);
+
+await db.query(`DO $$ BEGIN
+  BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS time_frame TEXT; EXCEPTION WHEN duplicate_column THEN END;
+END $$;`);
+
 
 // 💬 MESSAGES
 await db.query(`
