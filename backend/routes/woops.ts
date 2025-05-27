@@ -1,113 +1,84 @@
-<<<<<<< HEAD
 import { Router } from "express";
-import { getAllWoops } from "../api/woops"; // ✅ Importa funzione corretta
 import db from "../db";
-=======
-import express from "express";
-import db = require("../db");
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
+import {
+  getAllWoops,
+  createWoopInDb,
+  completeWoop,
+  leaveWoop,
+  deleteWoop
+} from "../api/woops";
 
-const router = express.Router();
+const router = Router();
 
-<<<<<<< HEAD
-// ✅ GET /api/woops - Restituisce Woop reali con partecipanti e creator
+// ✅ GET /api/woops - Recupera tutti i Woop reali (con partecipanti + messaggi)
 router.get("/", async (_req, res) => {
   try {
-    const woops = await getAllWoops(); // usa la funzione già pronta
-    res.status(200).json({ woops });   // formato compatibile col frontend
+    const woops = await getAllWoops();
+    res.status(200).json({ woops });
   } catch (err) {
     console.error("❌ Errore recupero Woops:", err);
     res.status(500).json({ error: "Errore nel recupero dei Woops" });
   }
 });
 
-// ✅ POST /api/woops - Crea un nuovo Woop reale (REST classico)
-router.post("/", async (req, res) => {
-  const { title, description, user_id, userId } = req.body;
-  const finalUserId = user_id || userId;
+// ✅ POST /api/woops/create - Crea un nuovo Woop reale
+router.post("/create", async (req, res) => {
+  const { title, description, user_id, preferences } = req.body;
 
-  if (!title || !description || !finalUserId) {
-    return res.status(400).json({ error: 'title, description e user_id sono richiesti' });
+  if (!title || !description || !user_id || !preferences) {
+    return res.status(400).json({ error: "Dati incompleti" });
   }
 
   try {
-    const result = await db.query(
-      `INSERT INTO woops (title, description, user_id, is_mock)
-       VALUES ($1, $2, $3, false)
-       RETURNING *`,
-      [title, description, finalUserId]
-=======
-/**
- * GET /api/woops
- * Restituisce tutti i Woop, con creator e partecipanti
- */
-router.get("/", async (_req, res) => {
-  try {
-    // Prendi i Woop e i dati base del creator
-    const woopRes = await db.query(
-      `SELECT w.*, 
-              u.id as creator_id, u.first_name, u.last_name, u.age, u.profile_picture
-       FROM woops w
-       JOIN users u ON u.id = w.user_id
-       ORDER BY w.created_at DESC`
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-    );
-
-    // Prendi i partecipanti
-    const participantRes = await db.query(
-      `SELECT p.woop_id, json_agg(
-         json_build_object(
-           'id', u.id,
-           'firstName', u.first_name,
-           'lastName', u.last_name,
-           'profilePicture', u.profile_picture
-         )
-       ) as participants
-       FROM participants p
-       JOIN users u ON u.id = p.user_id
-       GROUP BY p.woop_id`
-    );
-
-    // Mappa per woop_id → partecipanti[]
-    const participantsMap: Record<string, any[]> = {};
-    participantRes.rows.forEach((row: any) => {
-      participantsMap[row.woop_id] = row.participants;
-    });
-
-    // Costruisci risposta finale per ogni Woop
-    const woops = woopRes.rows.map((row: any) => ({
-      id: `woop-${row.id}`,
-      creator: {
-        id: String(row.creator_id),
-        firstName: row.first_name,
-        lastName: row.last_name,
-        age: row.age,
-        profilePicture: row.profile_picture,
-        interests: [], // puoi popolare se vuoi
-        photos: []
-      },
-      interest: row.title,
-      description: row.description,
-      preferences: {
-        genderPreference: row.gender_preference || 'entrambi',
-        maxParticipants: row.max_participants || 4,
-        maxDistance: row.max_distance || 10,
-        timeFrame: row.time_frame || 'Oggi'
-      },
-      participants: participantsMap[row.id] || [],
-      status: row.status
-    }));
-
-    res.status(200).json({ woops });
+    const woopId = await createWoopInDb(title, description, user_id, preferences);
+    res.status(201).json({ woop_id: woopId });
   } catch (err) {
-    console.error("Errore GET /api/woops", err);
-    res.status(500).json({ error: "Errore nel recupero dei woops" });
+    console.error("❌ Errore creazione Woop:", err);
+    res.status(400).json({ error: "Errore durante la creazione del Woop" });
+  }
+});
+
+// ✅ POST /api/woops/complete - Segna un Woop come completato
+router.post("/complete", async (req, res) => {
+  const { woop_id } = req.body;
+  if (!woop_id) return res.status(400).json({ error: "woop_id mancante" });
+
+  try {
+    await completeWoop(woop_id);
+    res.status(200).json({ message: "Woop completato" });
+  } catch (err) {
+    console.error("❌ Errore completamento Woop:", err);
+    res.status(500).json({ error: "Errore completamento Woop" });
+  }
+});
+
+// ✅ POST /api/woops/leave - Esce da un Woop
+router.post("/leave", async (req, res) => {
+  const { woop_id, user_id } = req.body;
+  if (!woop_id || !user_id) return res.status(400).json({ error: "woop_id e user_id richiesti" });
+
+  try {
+    await leaveWoop(woop_id, user_id);
+    res.status(200).json({ message: "Uscito dal Woop" });
+  } catch (err) {
+    console.error("❌ Errore uscita Woop:", err);
+    res.status(500).json({ error: "Errore uscita Woop" });
+  }
+});
+
+// ✅ POST /api/woops/delete - Elimina un Woop
+router.post("/delete", async (req, res) => {
+  const { woop_id } = req.body;
+  if (!woop_id) return res.status(400).json({ error: "woop_id richiesto" });
+
+  try {
+    await deleteWoop(woop_id);
+    res.status(200).json({ message: "Woop eliminato con successo" });
+  } catch (err) {
+    console.error("❌ Errore eliminazione Woop:", err);
+    res.status(500).json({ error: "Errore eliminazione Woop" });
   }
 });
 
 export default router;
-<<<<<<< HEAD
 
-
-=======
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a

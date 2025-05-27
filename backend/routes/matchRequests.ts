@@ -64,38 +64,23 @@ router.post("/", authMiddleware, async (req, res) => {
     // 3. Se trova match compatibile → crea woop
     if (compatible) {
       const woopRes = await db.query(
-  `INSERT INTO woops (
-<<<<<<< HEAD
-    title, description, user_id, is_mock, status,
-    max_participants, max_distance, gender_preference, time_frame
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-=======
-    title, description, user_id, status,
-    gender_preference, max_participants, max_distance, time_frame
-  )
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-  RETURNING id`,
-  [
-    `[AUTO] ${activity}`,
-    `Match automatico per ${activity}`,
-    userId,
-<<<<<<< HEAD
-    false,           // is_mock
-    'active',        // status iniziale
-    max_participants,
-    radius_km,
-    gender,
-    'Oggi'           // puoi cambiarlo se vuoi
-=======
-    'active',           // oppure 'searching' se preferisci
-    gender,
-    max_participants,
-    radius_km,          // distanza massima
-    'Oggi'              // o scegli dinamicamente il time frame
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-  ]
-);
+        `INSERT INTO woops (
+          title, description, user_id, is_mock, status,
+          max_participants, max_distance, gender_preference, time_frame
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        RETURNING id`,
+        [
+          `[AUTO] ${activity}`,
+          `Match automatico per ${activity}`,
+          userId,
+          false,
+          'active',
+          max_participants,
+          radius_km,
+          gender,
+          'Oggi'
+        ]
+      );
 
       const woopId = woopRes.rows[0].id;
 

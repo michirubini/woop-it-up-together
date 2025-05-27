@@ -232,7 +232,8 @@ const handleDeleteWoop = async () => {
                 <div className="bg-gray-50 p-3 rounded-lg max-h-60 overflow-y-auto mb-3">
                   {woop.messages && woop.messages.length > 0 ? (
                     <div className="space-y-3">
-                      {woop.messages.map((msg, index) => {
+                      {[...woop.messages].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((msg, index) => {
+
                         const sender = woop.participants.find(p => p.id === msg.userId);
                         const isCurrentUser = String(msg.userId) === String(currentUser.id);
 

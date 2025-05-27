@@ -1,4 +1,3 @@
-// FILE: backend/api/woops.ts
 import db = require("../db");
 
 // ✅ COMPLETA UN WOOP
@@ -26,17 +25,17 @@ export async function leaveWoop(woopId: number, userId: number): Promise<void> {
   }
 }
 
-// ✅ RESTITUISCE TUTTI I WOOP DAL DATABASE
+// ✅ RESTITUISCE TUTTI I WOOP REALI (con partecipanti e messaggi)
 export async function getAllWoops() {
-  // Unisci dati di woop + creator + preferenze + partecipanti, se vuoi
   const woopRes = await db.query(
     `SELECT w.*, 
             u.id as creator_id, u.first_name, u.last_name, u.age, u.profile_picture
      FROM woops w
-     JOIN users u ON u.id = w.user_id`
+     JOIN users u ON u.id = w.user_id
+     WHERE (w.is_mock = false OR w.is_mock IS NULL)
+     ORDER BY w.created_at DESC`
   );
 
-  // Questo prende anche i partecipanti (semplificato)
   const participantRes = await db.query(
     `SELECT p.woop_id, json_agg(
        json_build_object(
@@ -51,13 +50,25 @@ export async function getAllWoops() {
      GROUP BY p.woop_id`
   );
 
-  // Mappa i partecipanti ai rispettivi woop
+  const messagesRes = await db.query(
+    `SELECT * FROM messages ORDER BY timestamp ASC`
+  );
+
   const participantsMap: Record<string, any[]> = {};
   participantRes.rows.forEach((row: any) => {
     participantsMap[row.woop_id] = row.participants;
   });
 
-  // Ricostruisci ogni woop con il creator e i partecipanti
+  const messagesMap: Record<number, any[]> = {};
+  messagesRes.rows.forEach((msg: any) => {
+    if (!messagesMap[msg.woop_id]) messagesMap[msg.woop_id] = [];
+    messagesMap[msg.woop_id].push({
+      userId: msg.user_id.toString(),
+      text: msg.text,
+      timestamp: msg.timestamp,
+    });
+  });
+
   return woopRes.rows.map((row: any) => ({
     id: `woop-${row.id}`,
     creator: {
@@ -66,22 +77,22 @@ export async function getAllWoops() {
       lastName: row.last_name,
       age: row.age,
       profilePicture: row.profile_picture,
-      interests: [], // se vuoi aggiungi anche questi
+      interests: [],
       photos: []
     },
     interest: row.title,
     description: row.description,
     preferences: {
-      genderPreference: 'entrambi',
+      genderPreference: row.gender_preference || 'entrambi',
       maxParticipants: row.max_participants || 4,
       maxDistance: row.max_distance || 10,
       timeFrame: row.time_frame || 'Oggi'
     },
     participants: participantsMap[row.id] || [],
+    messages: messagesMap[row.id] || [],
     status: row.status
   }));
 }
-
 
 // ✅ CREA UN NUOVO WOOP NEL DATABASE
 export async function createWoopInDb(
@@ -96,16 +107,28 @@ export async function createWoopInDb(
   }
 ): Promise<number> {
   const result = await db.query(
-    `INSERT INTO woops (title, description, user_id, status)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO woops (
+      title, description, user_id, is_mock, status,
+      max_participants, max_distance, gender_preference, time_frame
+    ) VALUES ($1, $2, $3, false, 'searching', $4, $5, $6, $7)
      RETURNING id`,
-    [title, description, userId, 'searching']
+    [
+      title,
+      description,
+      userId,
+      preferences.maxParticipants,
+      preferences.maxDistance,
+      preferences.genderPreference,
+      preferences.timeFrame
+    ]
   );
+
   const woopId = result.rows[0].id;
 
-  await db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woopId, userId]);
-
-  // Puoi salvare le preferenze in tabella a parte oppure estenderle nel JSON del Woop
+  await db.query(
+    `INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`,
+    [woopId, userId]
+  );
 
   return woopId;
 }
@@ -113,5 +136,6 @@ export async function createWoopInDb(
 // ✅ ELIMINA UN WOOP
 export async function deleteWoop(woop_id: number): Promise<void> {
   await db.query(`DELETE FROM participants WHERE woop_id = $1`, [woop_id]);
+  await db.query(`DELETE FROM messages WHERE woop_id = $1`, [woop_id]);
   await db.query(`DELETE FROM woops WHERE id = $1`, [woop_id]);
 }

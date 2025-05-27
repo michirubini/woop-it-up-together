@@ -63,69 +63,17 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [mockUsers, setMockUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('woopitCurrentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  const [woops, setWoops] = useState<Woop[]>([]);
+  const [woops, setWoops] = useState<Woop[]>(() => {
+    const savedWoops = localStorage.getItem('woopitWoops');
+    return savedWoops ? JSON.parse(savedWoops) : [];
+  });
 
-<<<<<<< HEAD
-
-=======
-// ⬇️ METTI QUI QUESTO PEZZO! ⬇️
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-useEffect(() => {
-  if (!currentUser) return; // Solo se loggato
-  const fetchWoops = async () => {
-    try {
-      const res = await fetch(`${API}/api/woops`, { headers: authHeaders() });
-      const data = await res.json();
-<<<<<<< HEAD
-      if (!res.ok) throw new Error(data.error);
-
-      const woopsWithMessages = await Promise.all(
-        data.woops.map(async (woop: any) => {
-          try {
-            const resMsg = await fetch(`${API}/api/messages/${parseInt(woop.id.replace("woop-", ""))}`);
-            const msgs = await resMsg.json();
-            return {
-              ...woop,
-              messages: msgs.map((m: any) => ({
-                userId: m.user_id.toString(),
-                text: m.text,
-                timestamp: new Date(m.timestamp)
-              }))
-            };
-          } catch (err) {
-            console.error("❌ Errore fetch messaggi per woop", woop.id, err);
-            return { ...woop, messages: [] };
-          }
-        })
-      );
-
-      setWoops(woopsWithMessages);
-    } catch (error) {
-      console.error("Errore fetch Woops:", error);
-=======
-      if (res.ok && Array.isArray(data.woops)) {
-        setWoops(data.woops); // Aggiorna stato SOLO con i dati veri dal backend
-      }
-    } catch (err) {
-      console.error("Errore caricamento woops:", err);
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-    }
-  };
-
-  fetchWoops();
-}, [currentUser]);
-
-
-<<<<<<< HEAD
-
-=======
-  // ✅ Intestazioni con token JWT
   const authHeaders = () => {
     const token = localStorage.getItem("token");
     return {
@@ -134,26 +82,47 @@ useEffect(() => {
     };
   };
 
-  // ✅ Carica utenti all'avvio
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchWoops = async () => {
       try {
-        const res = await fetch(`${API}/api/users`, { headers: authHeaders() });
+        const res = await fetch(`${API}/api/woops`, { headers: authHeaders() });
         const data = await res.json();
-        if (res.ok) {
-          setMockUsers(data.users);
-        } else {
-          console.error("Errore nel caricamento utenti:", data.error);
-        }
+        if (!res.ok) throw new Error(data.error);
+
+        const woopsWithMessages = await Promise.all(
+          data.woops.map(async (woop: any) => {
+            try {
+              const resMsg = await fetch(`${API}/api/messages/${parseInt(woop.id.replace("woop-", ""))}`, {
+                headers: authHeaders()
+              });
+              const msgs = await resMsg.json();
+              return {
+                ...woop,
+                messages: msgs.map((m: any) => ({
+                  userId: m.user_id.toString(),
+                  text: m.text,
+                  timestamp: new Date(m.timestamp)
+                }))
+              };
+            } catch (err) {
+              console.error("❌ Errore fetch messaggi per woop", woop.id, err);
+              return { ...woop, messages: [] };
+            }
+          })
+        );
+
+        setWoops(woopsWithMessages);
       } catch (error) {
-        console.error("Errore fetch utenti:", error);
+        console.error("Errore fetch Woops:", error);
       }
     };
-    fetchUsers();
-  }, []);
 
-  
+    if (currentUser) fetchWoops();
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('woopitWoops', JSON.stringify(woops));
+  }, [woops]);
 
   useEffect(() => {
     if (currentUser) {
@@ -193,7 +162,7 @@ useEffect(() => {
         availability: data.user.availability || {
           timeOfDay: [],
           daysOfWeek: [],
-          flexibility: '',
+          flexibility: ''
         },
         rating: data.user.rating,
         badges: data.user.badges || [],
@@ -208,30 +177,6 @@ useEffect(() => {
     }
   };
 
-  const refreshParticipants = async () => {
-    if (!currentUser) return;
-
-    const updatedWoops = await Promise.all(
-      woops.map(async (w) => {
-        try {
-          const res = await fetch(`${API}/api/participants/${parseInt(w.id.replace('woop-', ''))}`, {
-            headers: authHeaders()
-          });
-          const participants = await res.json();
-
-          return {
-            ...w,
-            participants,
-          };
-        } catch (err) {
-          console.error(`Errore fetch partecipanti per woop ${w.id}`, err);
-          return w;
-        }
-      })
-    );
-
-    setWoops(updatedWoops);
-  };
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/register`, {
@@ -239,11 +184,13 @@ useEffect(() => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...userData, password }),
       });
+
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Errore durante la registrazione");
         return false;
       }
+
       setCurrentUser({
         id: data.user?.id || "temp-id",
         firstName: userData.firstName || "",
@@ -254,9 +201,11 @@ useEffect(() => {
         interests: userData.interests || [],
         availability: userData.availability || {
           timeOfDay: [],
-          daysOfWeek: []
+          daysOfWeek: [],
+          flexibility: ''
         }
       });
+
       toast.success("Registrazione completata con successo!");
       return true;
     } catch (error) {
@@ -291,7 +240,6 @@ useEffect(() => {
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || "Errore creazione Woop");
 
       const newWoop: Woop = {
@@ -358,27 +306,42 @@ useEffect(() => {
       toast.error("Errore durante la partecipazione");
     }
   };
-<<<<<<< HEAD
-  
-const sendMessage = async (woopId: string, message: string) => {
-  if (!currentUser || !message.trim()) return;
+  const sendMessage = async (woopId: string, message: string) => {
+    if (!currentUser || !message.trim()) return;
 
-  const woopNumericId = parseInt(woopId.replace("woop-", ""));
+    const woopNumericId = parseInt(woopId.replace("woop-", ""));
 
-  try {
-    await fetch(`${API}/api/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        woop_id: woopNumericId,
-        user_id: parseInt(currentUser.id),
-        text: message
-      }),
-    });
+    try {
+      await fetch(`${API}/api/messages`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          woop_id: woopNumericId,
+          user_id: parseInt(currentUser.id),
+          text: message
+        }),
+      });
 
-    setWoops(prev =>
-      prev.map(w => {
-=======
+      setWoops(prev =>
+        prev.map(w => {
+          if (w.id === woopId) {
+            return {
+              ...w,
+              messages: [...(w.messages || []), {
+                userId: currentUser.id,
+                text: message,
+                timestamp: new Date()
+              }]
+            };
+          }
+          return w;
+        })
+      );
+    } catch (err) {
+      console.error("❌ Errore invio messaggio:", err);
+      toast.error("Errore invio messaggio");
+    }
+  };
 
   const leaveWoop = async (woopId: string) => {
     if (!currentUser) return;
@@ -439,31 +402,34 @@ const sendMessage = async (woopId: string, message: string) => {
     }
   };
 
-  const sendMessage = (woopId: string, message: string) => {
-    if (!currentUser || !message.trim()) return;
-    setWoops(prevWoops =>
-      prevWoops.map(w => {
->>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
-        if (w.id === woopId) {
+  const refreshParticipants = async () => {
+    if (!currentUser) return;
+
+    const updatedWoops = await Promise.all(
+      woops.map(async (w) => {
+        try {
+          const res = await fetch(`${API}/api/participants/${parseInt(w.id.replace('woop-', ''))}`, {
+            headers: authHeaders()
+          });
+          const participants = await res.json();
+
           return {
             ...w,
-            messages: [...(w.messages || []), {
-              userId: currentUser.id,
-              text: message,
-              timestamp: new Date()
-            }]
+            participants,
           };
+        } catch (err) {
+          console.error(`Errore fetch partecipanti per woop ${w.id}`, err);
+          return w;
         }
-        return w;
       })
     );
-  } catch (err) {
-    console.error("❌ Errore invio messaggio:", err);
-    toast.error("Errore invio messaggio");
-  }
-};
 
-  const rateUser = () => toast.success("Recensione inviata con successo!");
+    setWoops(updatedWoops);
+  };
+
+  const rateUser = () => {
+    toast.success("Recensione inviata con successo!");
+  };
 
   return (
     <AppContext.Provider value={{
