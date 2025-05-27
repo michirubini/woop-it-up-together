@@ -1,10 +1,11 @@
+// ✅ init-db.ts aggiornato
 import db = require("./db");
 
 async function createTablesSafely() {
   const result = await db.query("SELECT current_database();");
-  console.log("🎯 Database attivo:", result.rows[0].current_database);
+  console.log("\uD83C\uDFAF Database attivo:", result.rows[0].current_database);
 
-  // 👤 USERS
+  // USERS
   await db.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -14,7 +15,6 @@ async function createTablesSafely() {
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       bio TEXT,
-      interests TEXT[],
       availability JSONB,
       profile_picture TEXT,
       photos TEXT[],
@@ -24,32 +24,13 @@ async function createTablesSafely() {
     );
   `);
 
-  // 🔧 Aggiunta colonne mancanti se la tabella esiste già
+  // Rimuove la colonna interests se esiste (ora usiamo user_activities)
   await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS rating REAL;
-    EXCEPTION WHEN duplicate_column THEN END;
+    BEGIN ALTER TABLE users DROP COLUMN IF EXISTS interests;
+    EXCEPTION WHEN undefined_column THEN END;
   END $$;`);
 
-  await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS badges TEXT[];
-    EXCEPTION WHEN duplicate_column THEN END;
-  END $$;`);
-
-  await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT;
-    EXCEPTION WHEN duplicate_column THEN END;
-  END $$;`);
-
-  await db.query(`DO $$ BEGIN
-    BEGIN
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS photos TEXT[];
-    EXCEPTION WHEN duplicate_column THEN END;
-  END $$;`);
-
-  // 💡 COMMUNITY IDEAS
+  // COMMUNITY IDEAS
   await db.query(`
     CREATE TABLE IF NOT EXISTS community_ideas (
       id SERIAL PRIMARY KEY,
@@ -60,59 +41,80 @@ async function createTablesSafely() {
     );
   `);
 
-// 📅 WOOPS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS woops (
-    id BIGSERIAL PRIMARY KEY,  -- CAMBIATO da SERIAL a BIGSERIAL
-    title TEXT NOT NULL,
-    description TEXT,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    status TEXT DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW()
-  );
-`);
+  // ACTIVITIES
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS activities (
+      id SERIAL PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL
+    );
+  `);
 
-  // ✅ AGGIUNGIAMO is_mock SOLO SE NON ESISTE
+  await db.query(`
+    INSERT INTO activities (name)
+    VALUES ('Padel'), ('Calcetto'), ('Aperitivo'), ('Escursionismo')
+    ON CONFLICT (name) DO NOTHING;
+  `);
+
+  // USER_ACTIVITIES many-to-many
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_activities (
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
+      PRIMARY KEY (user_id, activity_id)
+    );
+  `);
+
+  // WOOPS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS woops (
+      id BIGSERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
   await db.query(`DO $$ BEGIN
     BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS is_mock BOOLEAN DEFAULT false;
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
-// 💬 MESSAGES
-await db.query(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT NOW()
-  );
-`);
+  // MESSAGES
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      timestamp TIMESTAMP DEFAULT NOW()
+    );
+  `);
 
-// ⭐ RATINGS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS ratings (
-    id SERIAL PRIMARY KEY,
-    from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    rating INTEGER NOT NULL,
-    comment TEXT,
-    badges TEXT[]
-  );
-`);
+  // RATINGS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS ratings (
+      id SERIAL PRIMARY KEY,
+      from_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      to_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL,
+      comment TEXT,
+      badges TEXT[]
+    );
+  `);
 
-// 👥 PARTICIPANTS
-await db.query(`
-  CREATE TABLE IF NOT EXISTS participants (
-    id SERIAL PRIMARY KEY,
-    woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
-  );
-`);
+  // PARTICIPANTS
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS participants (
+      id SERIAL PRIMARY KEY,
+      woop_id BIGINT REFERENCES woops(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
 
-
-  // 🤝 MATCH REQUESTS
+  // MATCH REQUESTS
   await db.query(`
     CREATE TABLE IF NOT EXISTS match_requests (
       id SERIAL PRIMARY KEY,
@@ -130,14 +132,10 @@ await db.query(`
     );
   `);
 
-  console.log("✅ Tabelle verificate o create con successo.");
+  console.log("\u2705 Tabelle verificate o create con successo.");
   await db.end();
 }
 
 createTablesSafely().catch((err) => {
-  console.error("❌ Errore nella creazione delle tabelle:", err);
+  console.error("\u274C Errore nella creazione delle tabelle:", err);
 });
-
-
-
-

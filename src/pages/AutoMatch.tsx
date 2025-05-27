@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 const AutoMatch: React.FC = () => {
   const [activity, setActivity] = useState("");
+  const [activities, setActivities] = useState<string[]>([]);
   const [level, setLevel] = useState("intermedio");
   const [gender, setGender] = useState("entrambi");
   const [maxParticipants, setMaxParticipants] = useState(4);
@@ -21,28 +24,50 @@ const AutoMatch: React.FC = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Funzione per convertire la città in latitudine/longitudine
+  // ✅ Carica le attività dal backend all'avvio
+  useEffect(() => {
+    const fetchActivities = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API}/api/activities`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+        if (res.ok && Array.isArray(data.activities)) {
+          setActivities(data.activities.map((a: any) => a.name));
+        } else {
+          console.error("Errore fetch attività:", data.error);
+        }
+      } catch (err) {
+        console.error("Errore rete attività:", err);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  // ✅ Converti la città in coordinate
   const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
         {
           headers: {
-            "User-Agent": "WoopItApp/1.0 (rubinimc@gmail.com)", // obbligatorio per policy Nominatim
+            "User-Agent": "WoopItApp/1.0 (support@woopit.it)",
           },
         }
       );
       const data = await response.json();
-      if (data && data.length > 0) {
+      if (data?.[0]) {
         return {
           lat: parseFloat(data[0].lat),
           lon: parseFloat(data[0].lon),
         };
-      } else {
-        return null;
       }
+      return null;
     } catch (error) {
-      console.error("Errore durante la geocodifica:", error);
+      console.error("Errore durante geocoding:", error);
       return null;
     }
   };
@@ -60,16 +85,14 @@ const AutoMatch: React.FC = () => {
     }
 
     const coords = await geocodeLocation(location);
-    console.log("📍 Coordinate trovate per", location, coords);
-
     if (!coords) {
-      setMessage("❌ Posizione non trovata. Controlla il nome della città.");
+      setMessage("❌ Posizione non trovata.");
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch("http://localhost:3001/api/matchrequests", {
+      const response = await fetch(`${API}/api/matchrequests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +116,7 @@ const AutoMatch: React.FC = () => {
         setMessage("🕓 Nessun match per ora, sei in attesa...");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Errore invio richiesta:", err);
       setMessage("❌ Errore durante la richiesta.");
     } finally {
       setLoading(false);
@@ -107,7 +130,18 @@ const AutoMatch: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Attività</Label>
-            <Input value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="es. padel" required />
+            <Select value={activity} onValueChange={setActivity}>
+              <SelectTrigger>
+                <SelectValue placeholder="Scegli un'attività" />
+              </SelectTrigger>
+              <SelectContent>
+                {activities.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -178,3 +212,4 @@ const AutoMatch: React.FC = () => {
 };
 
 export default AutoMatch;
+

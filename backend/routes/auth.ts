@@ -9,8 +9,7 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-
-// ✅ REGISTER endpoint
+// ✅ REGISTER endpoint completo
 router.post("/register", async (req, res) => {
   const {
     firstName,
@@ -19,7 +18,7 @@ router.post("/register", async (req, res) => {
     email,
     password,
     bio,
-    interests,
+    interests, // Array di nomi attività (es. ["Padel", "Aperitivo"])
     availability,
     profilePicture,
     photos
@@ -32,11 +31,12 @@ router.post("/register", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 1. Crea l’utente
     const result = await db.query(
       `INSERT INTO users 
-        (first_name, last_name, age, email, password, bio, interests, availability, profile_picture, photos)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, first_name, last_name, age, email, bio, interests, availability, profile_picture, photos`,
+        (first_name, last_name, age, email, password, bio, availability, profile_picture, photos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, first_name, last_name, age, email, bio, availability, profile_picture, photos`,
       [
         firstName,
         lastName,
@@ -44,7 +44,6 @@ router.post("/register", async (req, res) => {
         email,
         hashedPassword,
         bio || null,
-        interests || [],
         availability || {},
         profilePicture || null,
         photos || []
@@ -52,6 +51,17 @@ router.post("/register", async (req, res) => {
     );
 
     const user = result.rows[0];
+    const userId = user.id;
+
+    // 2. Associa attività selezionate
+    if (Array.isArray(interests) && interests.length > 0) {
+      await db.query(`
+        INSERT INTO user_activities (user_id, activity_id)
+        SELECT $1, a.id
+        FROM activities a
+        WHERE a.name = ANY($2::text[])
+      `, [userId, interests]);
+    }
 
     res.status(201).json({
       message: "Utente registrato con successo.",
@@ -59,7 +69,7 @@ router.post("/register", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Errore durante la registrazione:", err);
-    res.status(400).json({ error: "Errore durante la registrazione." });
+    res.status(500).json({ error: "Errore interno durante la registrazione." });
   }
 });
 
@@ -81,7 +91,6 @@ router.post("/login", async (req, res) => {
         email,
         password,
         bio,
-        interests,
         availability,
         profile_picture AS "profilePicture",
         photos,
@@ -92,19 +101,13 @@ router.post("/login", async (req, res) => {
     `, [email]);
 
     const user = result.rows[0];
-
-    if (!user) {
-      return res.status(401).json({ error: "Utente non trovato." });
-    }
+    if (!user) return res.status(401).json({ error: "Utente non trovato." });
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ error: "Password non corretta." });
-    }
+    if (!valid) return res.status(401).json({ error: "Password non corretta." });
 
-    delete user.password; // ✅ non esporre mai la password nel JSON
+    delete user.password;
 
-    // ✅ Genera token JWT con payload minimo
     const token = jwt.sign(
       { id: user.id, email: user.email },
       JWT_SECRET,
@@ -123,3 +126,5 @@ router.post("/login", async (req, res) => {
 });
 
 export = router;
+
+

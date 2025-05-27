@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import matchRequestsRoutes from "./routes/matchRequests";
 import woopRoutes from "./routes/woops"; // <--- AGGIUNGI QUESTO!
+import activityRoutes from "./routes/activities";
 
 import { saveMessage, getMessages } from './api/messages';
 import { joinWoop, getParticipants } from './api/participants';
@@ -21,6 +22,7 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/activities", activityRoutes);
 
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
