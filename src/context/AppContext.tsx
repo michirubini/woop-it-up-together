@@ -29,13 +29,12 @@ export interface Woop {
   creator: User;
   interest: string;
   description: string;
-preferences: {
-  genderPreference: 'maschio' | 'femmina' | 'entrambi';
-  maxParticipants: number;
-  maxDistance: number;
-  timeFrame: string;
-};
-
+  preferences: {
+    genderPreference: 'maschio' | 'femmina' | 'entrambi';
+    maxParticipants: number;
+    maxDistance: number;
+    timeFrame: string;
+  };
   participants: User[];
   status: 'searching' | 'ready' | 'active' | 'completed';
   location?: string;
@@ -58,30 +57,32 @@ interface AppContextType {
   joinWoop: (woopId: string) => void;
   sendMessage: (woopId: string, message: string) => void;
   completeWoop: (woopId: string) => void;
-    leaveWoop: (woopId: string) => void;
-    refreshParticipants: () => Promise<void>;
+  leaveWoop: (woopId: string) => void;
+  refreshParticipants: () => Promise<void>;
   rateUser: (userId: string, rating: number, comment?: string, badges?: string[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-
+  const [mockUsers, setMockUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('woopitCurrentUser');
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  const [woops, setWoops] = useState<Woop[]>(() => {
-    const savedWoops = localStorage.getItem('woopitWoops');
-    return savedWoops ? JSON.parse(savedWoops) : [];
-  });
+  const [woops, setWoops] = useState<Woop[]>([]);
 
+<<<<<<< HEAD
 
+=======
+// ⬇️ METTI QUI QUESTO PEZZO! ⬇️
+>>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
 useEffect(() => {
+  if (!currentUser) return; // Solo se loggato
   const fetchWoops = async () => {
     try {
-      const res = await fetch(`${API}/api/woops`);
+      const res = await fetch(`${API}/api/woops`, { headers: authHeaders() });
       const data = await res.json();
+<<<<<<< HEAD
       if (!res.ok) throw new Error(data.error);
 
       const woopsWithMessages = await Promise.all(
@@ -107,17 +108,52 @@ useEffect(() => {
       setWoops(woopsWithMessages);
     } catch (error) {
       console.error("Errore fetch Woops:", error);
+=======
+      if (res.ok && Array.isArray(data.woops)) {
+        setWoops(data.woops); // Aggiorna stato SOLO con i dati veri dal backend
+      }
+    } catch (err) {
+      console.error("Errore caricamento woops:", err);
+>>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
     }
   };
 
   fetchWoops();
-}, []);
+}, [currentUser]);
 
 
+<<<<<<< HEAD
 
+=======
+  // ✅ Intestazioni con token JWT
+  const authHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    };
+  };
+
+  // ✅ Carica utenti all'avvio
+>>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
   useEffect(() => {
-    localStorage.setItem('woopitWoops', JSON.stringify(woops));
-  }, [woops]);
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`${API}/api/users`, { headers: authHeaders() });
+        const data = await res.json();
+        if (res.ok) {
+          setMockUsers(data.users);
+        } else {
+          console.error("Errore nel caricamento utenti:", data.error);
+        }
+      } catch (error) {
+        console.error("Errore fetch utenti:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  
 
   useEffect(() => {
     if (currentUser) {
@@ -126,7 +162,6 @@ useEffect(() => {
       localStorage.removeItem('woopitCurrentUser');
     }
   }, [currentUser]);
-
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/login`, {
@@ -134,20 +169,18 @@ useEffect(() => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok) {
         toast.error(data.error || "Errore di login");
         return false;
       }
-  
-      // ✅ Salva token nel localStorage
+
       if (data.token) {
         localStorage.setItem("token", data.token);
       }
-  
-      // ✅ Salva utente come prima
+
       setCurrentUser({
         id: data.user.id,
         firstName: data.user.firstName,
@@ -165,7 +198,7 @@ useEffect(() => {
         rating: data.user.rating,
         badges: data.user.badges || [],
       });
-  
+
       toast.success("Login effettuato con successo!");
       return true;
     } catch (error) {
@@ -174,33 +207,31 @@ useEffect(() => {
       return false;
     }
   };
-  
-const refreshParticipants = async () => {
-  if (!currentUser) return;
 
-  const updatedWoops = await Promise.all(
-    woops.map(async (w) => {
-      try {
-        const res = await fetch(`${API}/api/participants/${parseInt(w.id.replace('woop-', ''))}`);
-        const participants = await res.json();
+  const refreshParticipants = async () => {
+    if (!currentUser) return;
 
-        return {
-          ...w,
-          participants,
-        };
-      } catch (err) {
-        console.error(`Errore fetch partecipanti per woop ${w.id}`, err);
-        return w;
-      }
-    })
-  );
+    const updatedWoops = await Promise.all(
+      woops.map(async (w) => {
+        try {
+          const res = await fetch(`${API}/api/participants/${parseInt(w.id.replace('woop-', ''))}`, {
+            headers: authHeaders()
+          });
+          const participants = await res.json();
 
-  setWoops(updatedWoops);
-};
+          return {
+            ...w,
+            participants,
+          };
+        } catch (err) {
+          console.error(`Errore fetch partecipanti per woop ${w.id}`, err);
+          return w;
+        }
+      })
+    );
 
-
-
-
+    setWoops(updatedWoops);
+  };
   const register = async (userData: Partial<User>, password: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API}/api/register`, {
@@ -237,55 +268,54 @@ const refreshParticipants = async () => {
 
   const logout = () => {
     setCurrentUser(null);
+    localStorage.removeItem("token");
     toast.info("Logout effettuato");
   };
 
-const createWoop = async (woopData: Partial<Woop>) => {
-  if (!currentUser) {
-    toast.error("Devi effettuare l'accesso per creare un Woop");
-    return;
-  }
+  const createWoop = async (woopData: Partial<Woop>) => {
+    if (!currentUser) {
+      toast.error("Devi effettuare l'accesso per creare un Woop");
+      return;
+    }
 
-  try {
-    const response = await fetch(`${API}/api/woops/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: woopData.interest,
-        description: woopData.description,
-        user_id: parseInt(currentUser.id),
-        preferences: woopData.preferences
-      })
-    });
+    try {
+      const response = await fetch(`${API}/api/woops/create`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: woopData.interest,
+          description: woopData.description,
+          user_id: parseInt(currentUser.id),
+          preferences: woopData.preferences
+        })
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error || "Errore creazione Woop");
+      if (!response.ok) throw new Error(data.error || "Errore creazione Woop");
 
-    const newWoop: Woop = {
-  id: `woop-${data.woop_id}`, // <-- ✅ questa è la chiave corretta ricevuta dal backend
-      creator: currentUser,
-      interest: woopData.interest || '',
-      description: woopData.description || '',
-      preferences: woopData.preferences || {
-        genderPreference: 'entrambi',
-        maxParticipants: 4,
-        maxDistance: 10,
-        timeFrame: 'Oggi'
-      },
-      participants: [currentUser],
-      status: 'searching'
-    };
+      const newWoop: Woop = {
+        id: `woop-${data.woop_id}`,
+        creator: currentUser,
+        interest: woopData.interest || '',
+        description: woopData.description || '',
+        preferences: woopData.preferences || {
+          genderPreference: 'entrambi',
+          maxParticipants: 4,
+          maxDistance: 10,
+          timeFrame: 'Oggi'
+        },
+        participants: [currentUser],
+        status: 'searching'
+      };
 
-    setWoops(prev => [...prev, newWoop]);
-    toast.success("Woop creato con successo!");
-  } catch (err) {
-    console.error("❌ Errore creazione Woop:", err);
-    toast.error("Errore durante la creazione del Woop");
-  }
-};
-
-
+      setWoops(prev => [...prev, newWoop]);
+      toast.success("Woop creato con successo!");
+    } catch (err) {
+      console.error("❌ Errore creazione Woop:", err);
+      toast.error("Errore durante la creazione del Woop");
+    }
+  };
 
   const joinWoop = async (woopId: string) => {
     if (!currentUser) {
@@ -293,23 +323,19 @@ const createWoop = async (woopData: Partial<Woop>) => {
       return;
     }
 
+    const woopNumericId = parseInt(woopId.replace("woop-", ""));
+    const userNumericId = parseInt(currentUser.id);
 
-
-    const woopNumericId = parseInt(woopId.replace("woop-", "")); // converte in ID numerico se serve
-    const userNumericId = parseInt(currentUser.id); // assumi che l'id utente sia un numero nel DB
-  
     try {
-      // Salva nel backend
       await fetch(`${API}/api/participants`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           woop_id: woopNumericId,
           user_id: userNumericId,
         }),
       });
-  
-      // Aggiorna localmente
+
       setWoops(prevWoops =>
         prevWoops.map(w => {
           if (w.id === woopId && !w.participants.some(p => p.id === currentUser.id)) {
@@ -332,6 +358,7 @@ const createWoop = async (woopData: Partial<Woop>) => {
       toast.error("Errore durante la partecipazione");
     }
   };
+<<<<<<< HEAD
   
 const sendMessage = async (woopId: string, message: string) => {
   if (!currentUser || !message.trim()) return;
@@ -351,6 +378,72 @@ const sendMessage = async (woopId: string, message: string) => {
 
     setWoops(prev =>
       prev.map(w => {
+=======
+
+  const leaveWoop = async (woopId: string) => {
+    if (!currentUser) return;
+
+    const woopNumericId = parseInt(woopId.replace("woop-", ""));
+    const userNumericId = parseInt(currentUser.id);
+
+    try {
+      await fetch(`${API}/api/woops/leave`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          woop_id: woopNumericId,
+          user_id: userNumericId,
+        }),
+      });
+
+      setWoops(prev =>
+        prev.map(w => {
+          if (w.id === woopId) {
+            const updated = w.participants.filter(p => p.id !== currentUser.id);
+            return {
+              ...w,
+              participants: updated,
+              status: updated.length === 0 ? 'searching' : w.status
+            };
+          }
+          return w;
+        })
+      );
+
+      toast.success("Sei uscito dal Woop");
+    } catch (err) {
+      console.error("Errore uscita Woop:", err);
+      toast.error("Errore durante l'uscita dal Woop");
+    }
+  };
+
+  const completeWoop = async (woopId: string) => {
+    const woopNumericId = parseInt(woopId.replace("woop-", ""));
+    try {
+      await fetch(`${API}/api/woops/complete`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ woop_id: woopNumericId }),
+      });
+
+      setWoops(prevWoops =>
+        prevWoops.map(w =>
+          w.id === woopId ? { ...w, status: 'completed' } : w
+        )
+      );
+
+      toast.success("Woop completato! Ora puoi lasciare una recensione");
+    } catch (error) {
+      console.error("Errore durante il completamento del Woop:", error);
+      toast.error("Errore nel completamento");
+    }
+  };
+
+  const sendMessage = (woopId: string, message: string) => {
+    if (!currentUser || !message.trim()) return;
+    setWoops(prevWoops =>
+      prevWoops.map(w => {
+>>>>>>> 4b9523e8a8ff7e2d923297221882b36be312355a
         if (w.id === woopId) {
           return {
             ...w,
@@ -370,91 +463,25 @@ const sendMessage = async (woopId: string, message: string) => {
   }
 };
 
-// Sostituisci TUTTA la funzione leaveWoop nel tuo AppProvider con questa:
-
-const leaveWoop = async (woopId: string) => {
-  if (!currentUser) return;
-
-  const woopNumericId = parseInt(woopId.replace("woop-", ""));
-  const userNumericId = parseInt(currentUser.id);
-
-  try {
-    await fetch(`${API}/api/woops/leave`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        woop_id: woopNumericId,
-        user_id: userNumericId,
-      }),
-    });
-
-    setWoops(prev =>
-      prev.map(w => {
-        if (w.id === woopId) {
-          const updated = w.participants.filter(p => p.id !== currentUser.id);
-          return {
-            ...w,
-            participants: updated,
-            status: updated.length === 0 ? 'searching' : w.status
-          };
-        }
-        return w;
-      })
-    );
-
-    toast.success("Sei uscito dal Woop");
-  } catch (err) {
-    console.error("Errore uscita Woop:", err);
-    toast.error("Errore durante l'uscita dal Woop");
-  }
-};
-
-
-
-
-  const completeWoop = async (woopId: string) => {
-    const woopNumericId = parseInt(woopId.replace("woop-", ""));
-    try {
-      await fetch(`${API}/api/woops/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ woop_id: woopNumericId }),
-      });
-  
-      setWoops(prevWoops =>
-        prevWoops.map(w =>
-          w.id === woopId ? { ...w, status: 'completed' } : w
-        )
-      );
-  
-      toast.success("Woop completato! Ora puoi lasciare una recensione");
-    } catch (error) {
-      console.error("Errore durante il completamento del Woop:", error);
-      toast.error("Errore nel completamento");
-    }
-  };
-  
-
   const rateUser = () => toast.success("Recensione inviata con successo!");
 
   return (
     <AppContext.Provider value={{
-  currentUser,
-  woops,
-  setCurrentUser,
-  setWoops, // <-- AGGIUNGI QUESTO
-  login,
-  register,
-  logout,
-  createWoop,
-  joinWoop,
-  leaveWoop,
-  sendMessage,
-  completeWoop,
-  rateUser,
-  refreshParticipants
-}}>
-
+      currentUser,
+      woops,
+      setCurrentUser,
+      setWoops,
+      login,
+      register,
+      logout,
+      createWoop,
+      joinWoop,
+      leaveWoop,
+      sendMessage,
+      completeWoop,
+      rateUser,
+      refreshParticipants
+    }}>
       {children}
     </AppContext.Provider>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
@@ -36,7 +35,7 @@ const timeFrames = [
 const SearchWoop: React.FC = () => {
   const { currentUser, woops, joinWoop } = useAppContext();
   const navigate = useNavigate();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
@@ -44,12 +43,12 @@ const SearchWoop: React.FC = () => {
     maxDistance: 20,
     timeFrames: []
   });
-  
+
   if (!currentUser) {
     navigate('/login');
     return null;
   }
-  
+
   const toggleInterest = (interest: string) => {
     setFilters(prev => {
       if (prev.interests.includes(interest)) {
@@ -59,7 +58,7 @@ const SearchWoop: React.FC = () => {
       }
     });
   };
-  
+
   const toggleTimeFrame = (timeFrame: string) => {
     setFilters(prev => {
       if (prev.timeFrames.includes(timeFrame)) {
@@ -69,11 +68,11 @@ const SearchWoop: React.FC = () => {
       }
     });
   };
-  
+
   const toggleFilters = () => {
     setShowFilters(!showFilters);
   };
-  
+
   const resetFilters = () => {
     setFilters({
       interests: [],
@@ -82,52 +81,60 @@ const SearchWoop: React.FC = () => {
     });
     setSearchTerm('');
   };
-  
-  // Filter woops based on search and filters
+
+  // *** FILTRO: SOLO WOOP REALI, NO MOCK ***
+  // Escludi:
+  // - quelli creati dal currentUser
+  // - status completato
+  // - mock (eventuali con campo 'isMock' true)
+  // - oppure, se vuoi, escludi per id (es: quelli con id molto basso o formato anomalo)
+
   const filteredWoops = woops.filter(woop => {
-    // Exclude woops created by current user
+    // SOLO WOOP REALI: se hai un campo "isMock", oppure se mock hanno id numerico o simile
+    // Se hai ancora mock, escludili qui:
+    
+
+    // Exclude woops creati da current user
     if (woop.creator.id === currentUser.id) return false;
-    
-    // Exclude completed woops
+
+    // Exclude completati
     if (woop.status === 'completed') return false;
-    
-    // Search term filter
+
+    // Cerca su titolo e descrizione
     if (searchTerm && !woop.interest.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !woop.description.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    
-    // Interest filter
-// Interest filter (consente match parziali e case-insensitive)
-if (
-  filters.interests.length > 0 &&
-  !filters.interests.some(filterInterest =>
-    woop.interest.toLowerCase().includes(filterInterest.toLowerCase())
-  )
-) {
-  return false;
-}
 
-    
-    // Distance filter
+    // Filtro interessi
+    if (
+      filters.interests.length > 0 &&
+      !filters.interests.some(filterInterest =>
+        woop.interest.toLowerCase().includes(filterInterest.toLowerCase())
+      )
+    ) {
+      return false;
+    }
+
+    // Filtro distanza
     if (woop.preferences.maxDistance > filters.maxDistance) {
       return false;
     }
-    
-    // Time frame filter
-    if (filters.timeFrames.length > 0 && 
+
+    // Filtro time frame
+    if (filters.timeFrames.length > 0 &&
         !filters.timeFrames.some(t => woop.preferences.timeFrame.includes(t))) {
       return false;
     }
-    
+
     return true;
   });
-  
+
   const handleJoinWoop = (woopId: string) => {
     joinWoop(woopId);
     navigate(`/woop/${woopId}`);
   };
-  
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
@@ -136,7 +143,6 @@ if (
         </h1>
         <p className="text-gray-600">Trova persone e attività vicino a te</p>
       </div>
-      
       <div className="mb-6 flex space-x-2">
         <div className="relative flex-1">
           <Input
@@ -155,7 +161,7 @@ if (
           Filtri
         </Button>
       </div>
-      
+
       {showFilters && (
         <Card className="mb-6 animate-fade-in">
           <CardHeader>
@@ -178,7 +184,6 @@ if (
                   ))}
                 </div>
               </div>
-              
               <div>
                 <div className="flex justify-between items-center">
                   <Label htmlFor="maxDistance">Distanza massima</Label>
@@ -194,7 +199,6 @@ if (
                   className="mt-2"
                 />
               </div>
-              
               <div>
                 <Label className="mb-2 block">Quando</Label>
                 <div className="flex flex-wrap gap-2">
@@ -210,7 +214,6 @@ if (
                   ))}
                 </div>
               </div>
-              
               <Button variant="outline" className="w-full" onClick={resetFilters}>
                 Resetta filtri
               </Button>
@@ -218,7 +221,7 @@ if (
           </CardContent>
         </Card>
       )}
-      
+
       <div className="space-y-4">
         {filteredWoops.length > 0 ? (
           filteredWoops.map(woop => (
@@ -233,7 +236,6 @@ if (
                     {woop.status === 'active' ? 'Attivo' : woop.status === 'ready' ? 'Pronto' : 'Cercando...'}
                   </Badge>
                 </div>
-                
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="flex items-center">
                     <Clock size={16} className="text-gray-500 mr-2" />
@@ -250,8 +252,7 @@ if (
                     </span>
                   </div>
                 </div>
-                
-                <Button 
+                <Button
                   className="w-full"
                   onClick={() => handleJoinWoop(woop.id)}
                 >
@@ -264,7 +265,7 @@ if (
           <div className="text-center py-8">
             <h3 className="text-lg font-medium text-gray-700">Nessun Woop trovato</h3>
             <p className="text-gray-500 mt-1">Prova a modificare i filtri o crea un nuovo Woop</p>
-            <Button 
+            <Button
               className="mt-4"
               onClick={() => navigate('/create-woop')}
             >
@@ -278,3 +279,4 @@ if (
 };
 
 export default SearchWoop;
+

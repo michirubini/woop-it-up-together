@@ -1,25 +1,30 @@
-import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = process.env.JWT_SECRET || "woop-super-secret";
+import dotenv from "dotenv";
+dotenv.config();
 
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+const JWT_SECRET = process.env.JWT_SECRET!;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Token mancante o malformato" });
+
+export const authenticateToken = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Token mancante" });
   }
 
-  const token = authHeader.split(" ")[1];
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: "Token non valido" });
+    }
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
-    req.user = { id: decoded.id };
+    (req as any).user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ error: "Token non valido" });
-  }
+  });
 };
-
-export default authMiddleware;
-

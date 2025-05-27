@@ -1,12 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 
-// Importa router modulari
-import woopsRoutes from './routes/woops';             // /api/woops
-import communityIdeasRoutes from './routes/communityIdeas'; // /api/community-ideas
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
-import matchRequestsRoutes from './routes/matchRequests';
+import matchRequestsRoutes from "./routes/matchRequests";
+import woopRoutes from "./routes/woops"; // <--- AGGIUNGI QUESTO!
 
 import { saveMessage, getMessages } from './api/messages';
 import { joinWoop, getParticipants } from './api/participants';
@@ -16,6 +14,7 @@ import {
   createWoopInDb,
   deleteWoop
 } from './api/woops';
+import { authenticateToken as authMiddleware } from './middleware/auth';
 
 const app = express();
 const PORT = 3001;
@@ -23,16 +22,15 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// MOUNT ROUTES
-app.use('/api/woops', woopsRoutes);                       // Tutto sulle woop
-app.use('/api/community-ideas', communityIdeasRoutes);    // Tutto sulle idee community
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/matchrequests', matchRequestsRoutes);
 
-// --- Legacy/extra API ---
-// Crea un nuovo Woop (non serve se usi già POST /api/woops)
-app.post('/api/woops/create', async (req, res) => {
+// 🟢 TUTTE LE ROTTE /api/woops (GET e altre da router)
+app.use('/api/woops', woopRoutes);
+
+// ✅ Crea un nuovo Woop
+app.post('/api/woops/create', authMiddleware, async (req, res) => {
   const { title, description, user_id, preferences } = req.body;
 
   if (!title || !description || !user_id) {
@@ -48,8 +46,8 @@ app.post('/api/woops/create', async (req, res) => {
   }
 });
 
-// Partecipazione a un Woop
-app.post('/api/participants', async (req, res) => {
+// ✅ Partecipazione a un Woop
+app.post('/api/participants', authMiddleware, async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
     return res.status(400).json({ error: 'woop_id e user_id sono richiesti' });
@@ -64,8 +62,8 @@ app.post('/api/participants', async (req, res) => {
   }
 });
 
-// Uscita da un Woop
-app.post('/api/woops/leave', async (req, res) => {
+// ✅ Uscita da un Woop
+app.post('/api/woops/leave', authMiddleware, async (req, res) => {
   const { woop_id, user_id } = req.body;
   if (!woop_id || !user_id) {
     return res.status(400).json({ error: "woop_id e user_id sono richiesti" });
@@ -80,8 +78,8 @@ app.post('/api/woops/leave', async (req, res) => {
   }
 });
 
-// Completa un Woop
-app.post('/api/woops/complete', async (req, res) => {
+// ✅ Completa un Woop
+app.post('/api/woops/complete', authMiddleware, async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
     return res.status(400).json({ error: 'woop_id è richiesto' });
@@ -96,8 +94,8 @@ app.post('/api/woops/complete', async (req, res) => {
   }
 });
 
-// Elimina un Woop
-app.post('/api/woops/delete', async (req, res) => {
+// ✅ Elimina un Woop
+app.post('/api/woops/delete', authMiddleware, async (req, res) => {
   const { woop_id } = req.body;
   if (!woop_id) {
     return res.status(400).json({ error: "woop_id è richiesto" });
@@ -112,8 +110,8 @@ app.post('/api/woops/delete', async (req, res) => {
   }
 });
 
-// Recupera partecipanti
-app.get('/api/participants/:woop_id', async (req, res) => {
+// ✅ Recupera partecipanti
+app.get('/api/participants/:woop_id', authMiddleware, async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
   if (isNaN(woop_id)) {
     return res.status(400).json({ error: 'woop_id deve essere un numero' });
@@ -128,8 +126,8 @@ app.get('/api/participants/:woop_id', async (req, res) => {
   }
 });
 
-// Messaggi
-app.post('/api/messages', async (req, res) => {
+// ✅ Messaggi
+app.post('/api/messages', authMiddleware, async (req, res) => {
   const { woop_id, user_id, text } = req.body;
   if (!woop_id || !user_id || !text) {
     return res.status(400).json({ error: 'woop_id, user_id e text sono richiesti' });
@@ -144,7 +142,7 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-app.get('/api/messages/:woop_id', async (req, res) => {
+app.get('/api/messages/:woop_id', authMiddleware, async (req, res) => {
   const woop_id = parseInt(req.params.woop_id);
   if (isNaN(woop_id)) {
     return res.status(400).json({ error: 'woop_id deve essere un numero' });
@@ -159,7 +157,7 @@ app.get('/api/messages/:woop_id', async (req, res) => {
   }
 });
 
-// HOME semplice
+// Home
 app.get('/', (_req, res) => {
   res.send('🟢 Backend WoopIt attivo!');
 });

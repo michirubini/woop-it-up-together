@@ -4,7 +4,11 @@ import jwt = require("jsonwebtoken");
 import db = require("../db");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "woop-super-secret"; // spostalo in .env in produzione
+import dotenv from "dotenv";
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 
 // ✅ REGISTER endpoint
 router.post("/register", async (req, res) => {
@@ -49,14 +53,17 @@ router.post("/register", async (req, res) => {
 
     const user = result.rows[0];
 
-    res.status(201).json({ message: "Utente registrato con successo.", user });
+    res.status(201).json({
+      message: "Utente registrato con successo.",
+      user
+    });
   } catch (err) {
     console.error("❌ Errore durante la registrazione:", err);
     res.status(400).json({ error: "Errore durante la registrazione." });
   }
 });
 
-// ✅ LOGIN endpoint (con generazione JWT)
+// ✅ LOGIN endpoint con JWT
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -72,7 +79,7 @@ router.post("/login", async (req, res) => {
         last_name AS "lastName",
         age,
         email,
-        password,  -- ✅ NECESSARIO PER IL CONFRONTO
+        password,
         bio,
         interests,
         availability,
@@ -95,16 +102,19 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Password non corretta." });
     }
 
-    // ✅ Elimina la password prima di restituire i dati
-    delete user.password;
+    delete user.password; // ✅ non esporre mai la password nel JSON
 
-    // ✅ Genera token JWT
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "7d" });
+    // ✅ Genera token JWT con payload minimo
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.status(200).json({
       message: "Login riuscito",
       token,
-      user // già con alias: firstName, profilePicture, ecc.
+      user
     });
   } catch (err) {
     console.error("❌ Errore nel login:", err);
@@ -113,4 +123,3 @@ router.post("/login", async (req, res) => {
 });
 
 export = router;
-

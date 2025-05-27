@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,125 +19,70 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from 'sonner';
 import { ThumbsUp, MessageSquare, Trophy, Award } from 'lucide-react';
 
-type Idea = {
-  id: string;
-  title: string;
-  description: string;
-  creator: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    profilePicture?: string;
-  };
-  votes: number;
-  comments: number;
-  isTopIdea?: boolean;
-};
-
 const Community: React.FC = () => {
   const { currentUser } = useAppContext();
   const navigate = useNavigate();
-  const [ideas, setIdeas] = useState<Idea[]>([]);
+
+  // Solo dati reali utente-sessione
+  const [ideas, setIdeas] = useState<any[]>([]);
   const [showNewIdeaForm, setShowNewIdeaForm] = useState(false);
-  const [newIdea, setNewIdea] = useState({ title: '', description: '' });
+  const [newIdea, setNewIdea] = useState({
+    title: '',
+    description: ''
+  });
   const [userVotes, setUserVotes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const rankings: any[] = [];
 
-  // Redirect se non loggato
-  useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
+  if (!currentUser) {
+    navigate('/login');
+    return null;
+  }
+
+  const handleVote = (ideaId: string) => {
+    if (userVotes.includes(ideaId)) {
+      toast.error('Hai già votato questa idea');
+      return;
     }
-  }, [currentUser, navigate]);
-
-  // Carica tutte le idee dal backend
-  useEffect(() => {
-    const fetchIdeas = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('http://localhost:3001/api/community-ideas');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-
-        // Mappa dati se necessario (adatta questa parte alla risposta reale)
- const formatted = data.map((item: any) => ({
-  id: String(item.id),
-  title: item.title,
-  description: item.description,
-  creator: {
-    id: String(item.user_id ?? "0"),
-    firstName: item.first_name ?? "",
-    lastName: item.last_name ?? "",
-    profilePicture: item.profile_picture ?? "",
-  },
-  votes: 0,        // Se non li hai ancora, lasciali a zero
-  comments: 0,     // Idem
-  isTopIdea: false,
-}));
-
-        setIdeas(formatted);
-      } catch (err) {
-        toast.error("Errore nel caricamento delle idee");
-      }
-      setLoading(false);
-    };
-    fetchIdeas();
-  }, []);
+    setIdeas(prevIdeas =>
+      prevIdeas.map(idea =>
+        idea.id === ideaId ? { ...idea, votes: (idea.votes || 0) + 1 } : idea
+      )
+    );
+    setUserVotes(prev => [...prev, ideaId]);
+    toast.success('Voto registrato!');
+  };
 
   const handleIdeaChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewIdea(prev => ({ ...prev, [name]: value }));
   };
 
-  // Invio idea nuova
-  const handleSubmitIdea = async (e: React.FormEvent) => {
+  const handleSubmitIdea = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIdea.title.trim() || !newIdea.description.trim()) {
       toast.error('Titolo e descrizione sono obbligatori');
       return;
     }
-
-    try {
-const res = await fetch('http://localhost:3001/api/community-ideas', {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    title: newIdea.title,
-    description: newIdea.description,
-    user_id: currentUser.id,
-  }),
-});
-
-      if (!res.ok) throw new Error();
-      const savedIdea = await res.json();
-      // Mappa la risposta del backend (adatta se serve!)
-      const formatted = {
-        id: String(savedIdea.id),
-        title: savedIdea.interest || savedIdea.title,
-        description: savedIdea.description,
-        creator: {
-          id: String(savedIdea.creator?.id ?? savedIdea.user_id ?? "0"),
-          firstName: savedIdea.creator?.firstName ?? "",
-          lastName: savedIdea.creator?.lastName ?? "",
-          profilePicture: savedIdea.creator?.profilePicture ?? "",
-        },
-        votes: savedIdea.votes ?? 0,
-        comments: savedIdea.comments ?? 0,
-        isTopIdea: false,
-      };
-
-      setIdeas([formatted, ...ideas]);
-      setUserVotes(prev => [...prev, formatted.id]);
-      setNewIdea({ title: '', description: '' });
-      setShowNewIdeaForm(false);
-      toast.success('Idea proposta con successo!');
-    } catch {
-      toast.error("Errore nel salvataggio dell'idea!");
-    }
+    const newIdeaObject = {
+      id: `idea-${Date.now()}`,
+      title: newIdea.title,
+      description: newIdea.description,
+      creator: {
+        id: currentUser.id,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName.charAt(0) + '.',
+        profilePicture: currentUser.profilePicture
+      },
+      votes: 1,
+      comments: 0,
+      isTopIdea: false
+    };
+    setIdeas([newIdeaObject, ...ideas]);
+    setUserVotes(prev => [...prev, newIdeaObject.id]);
+    setNewIdea({ title: '', description: '' });
+    setShowNewIdeaForm(false);
+    toast.success('Idea proposta con successo!');
   };
-
-  // Solo utenti reali possono proporre idee (già gestito dal context)
-  if (!currentUser) return null;
 
   return (
     <div className="max-w-4xl mx-auto py-8">
@@ -148,19 +94,17 @@ const res = await fetch('http://localhost:3001/api/community-ideas', {
           Proponi nuove idee, vota le migliori e partecipa agli eventi della community!
         </p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <div className="mb-6 flex justify-between items-center">
             <h2 className="text-2xl font-semibold">Idee dalla community</h2>
-            <Button
+            <Button 
               variant={showNewIdeaForm ? "secondary" : "default"}
               onClick={() => setShowNewIdeaForm(!showNewIdeaForm)}
             >
               {showNewIdeaForm ? 'Annulla' : 'Proponi idea'}
             </Button>
           </div>
-
           {showNewIdeaForm && (
             <Card className="mb-6 animate-fade-in">
               <CardHeader>
@@ -198,68 +142,79 @@ const res = await fetch('http://localhost:3001/api/community-ideas', {
               </CardContent>
             </Card>
           )}
-
           <div className="space-y-4">
-            {loading && <div>Caricamento idee...</div>}
-            {!loading && ideas.length === 0 && <div>Nessuna idea trovata.</div>}
-            {!loading && ideas
-              .sort((a, b) => (b.votes - a.votes))
-              .map(idea => (
-                <Card
-                  key={idea.id}
-                  className={idea.isTopIdea ? "border-2 border-yellow-400" : ""}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start">
-                        <Avatar className="h-10 w-10 mr-3">
-                          {idea.creator.profilePicture ? (
-                            <AvatarImage src={idea.creator.profilePicture} alt={idea.creator.firstName} />
-                          ) : (
-                            <AvatarFallback>
-                              {idea.creator.firstName.charAt(0)}{idea.creator.lastName.charAt(0)}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {idea.title}
-                            {idea.isTopIdea && (
-                              <Badge className="ml-2 bg-yellow-400">
-                                <Trophy size={12} className="mr-1" />
-                                Top del mese
-                              </Badge>
+            {ideas.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                Nessuna idea disponibile al momento.
+              </div>
+            ) : (
+              ideas
+                .sort((a, b) => {
+                  if (a.isTopIdea && !b.isTopIdea) return -1;
+                  if (!a.isTopIdea && b.isTopIdea) return 1;
+                  return (b.votes || 0) - (a.votes || 0);
+                })
+                .map(idea => (
+                  <Card 
+                    key={idea.id} 
+                    className={idea.isTopIdea ? "border-2 border-yellow-400" : ""}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start">
+                          <Avatar className="h-10 w-10 mr-3">
+                            {idea.creator.profilePicture ? (
+                              <AvatarImage src={idea.creator.profilePicture} alt={idea.creator.firstName} />
+                            ) : (
+                              <AvatarFallback>
+                                {idea.creator.firstName?.charAt(0) ?? ''}
+                                {idea.creator.lastName?.charAt(0) ?? ''}
+                              </AvatarFallback>
                             )}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            Proposto da {idea.creator.firstName} {idea.creator.lastName}
-                          </p>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {idea.title}
+                              {idea.isTopIdea && (
+                                <Badge className="ml-2 bg-yellow-400">
+                                  <Trophy size={12} className="mr-1" />
+                                  Top del mese
+                                </Badge>
+                              )}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Proposto da {idea.creator.firstName} {idea.creator.lastName}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="mt-3 mb-4">{idea.description}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex space-x-4">
-                        {/* Voto disabilitato perché non gestito dal backend */}
-                        <button
-                          className="flex items-center space-x-1 text-gray-400"
-                          disabled
-                        >
-                          <ThumbsUp size={18} />
-                          <span>{idea.votes}</span>
-                        </button>
-                        <div className="flex items-center space-x-1 text-gray-600">
-                          <MessageSquare size={18} />
-                          <span>{idea.comments}</span>
+                      <p className="mt-3 mb-4">{idea.description}</p>
+                      <div className="flex justify-between items-center">
+                        <div className="flex space-x-4">
+                          <button 
+                            className={`flex items-center space-x-1 ${
+                              userVotes.includes(idea.id) 
+                                ? 'text-woop-purple' 
+                                : 'text-gray-600 hover:text-woop-purple'
+                            }`}
+                            onClick={() => handleVote(idea.id)}
+                            disabled={userVotes.includes(idea.id)}
+                          >
+                            <ThumbsUp size={18} />
+                            <span>{idea.votes}</span>
+                          </button>
+                          <div className="flex items-center space-x-1 text-gray-600">
+                            <MessageSquare size={18} />
+                            <span>{idea.comments}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+            )}
           </div>
         </div>
-
         <div>
           <Card>
             <CardHeader>
@@ -272,7 +227,42 @@ const res = await fetch('http://localhost:3001/api/community-ideas', {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-400 text-sm">Classifica non disponibile nella versione demo API.</div>
+              {rankings.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  Nessun contributore in classifica.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rankings.map((user, index) => (
+                    <div key={user.id} className="flex items-center">
+                      <div className="text-xl font-bold mr-3 w-5 text-center">
+                        {index + 1}
+                      </div>
+                      <Avatar className="h-10 w-10 mr-3">
+                        {user.profilePicture ? (
+                          <AvatarImage src={user.profilePicture} alt={user.firstName} />
+                        ) : (
+                          <AvatarFallback>
+                            {user.firstName?.charAt(0) ?? ''}
+                            {user.lastName?.charAt(0) ?? ''}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{user.firstName} {user.lastName}</p>
+                        <div className="flex items-center">
+                          <Badge variant="outline" className="text-xs">
+                            {user.badge}
+                          </Badge>
+                          <span className="text-xs ml-2 text-gray-600">
+                            {user.points} pt
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <Separator className="my-4" />
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-2">

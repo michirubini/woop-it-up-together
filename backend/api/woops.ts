@@ -26,17 +26,17 @@ export async function leaveWoop(woopId: number, userId: number): Promise<void> {
   }
 }
 
-// ✅ RESTITUISCE TUTTI I WOOP REALI (escludendo mock)
+// ✅ RESTITUISCE TUTTI I WOOP DAL DATABASE
 export async function getAllWoops() {
+  // Unisci dati di woop + creator + preferenze + partecipanti, se vuoi
   const woopRes = await db.query(
     `SELECT w.*, 
             u.id as creator_id, u.first_name, u.last_name, u.age, u.profile_picture
      FROM woops w
-     JOIN users u ON u.id = w.user_id
-     WHERE (w.is_mock = false OR w.is_mock IS NULL)
-     ORDER BY w.created_at DESC`
+     JOIN users u ON u.id = w.user_id`
   );
 
+  // Questo prende anche i partecipanti (semplificato)
   const participantRes = await db.query(
     `SELECT p.woop_id, json_agg(
        json_build_object(
@@ -51,11 +51,13 @@ export async function getAllWoops() {
      GROUP BY p.woop_id`
   );
 
+  // Mappa i partecipanti ai rispettivi woop
   const participantsMap: Record<string, any[]> = {};
   participantRes.rows.forEach((row: any) => {
     participantsMap[row.woop_id] = row.participants;
   });
 
+  // Ricostruisci ogni woop con il creator e i partecipanti
   return woopRes.rows.map((row: any) => ({
     id: `woop-${row.id}`,
     creator: {
@@ -64,7 +66,7 @@ export async function getAllWoops() {
       lastName: row.last_name,
       age: row.age,
       profilePicture: row.profile_picture,
-      interests: [],
+      interests: [], // se vuoi aggiungi anche questi
       photos: []
     },
     interest: row.title,
@@ -79,6 +81,7 @@ export async function getAllWoops() {
     status: row.status
   }));
 }
+
 
 // ✅ CREA UN NUOVO WOOP NEL DATABASE
 export async function createWoopInDb(
@@ -102,6 +105,8 @@ export async function createWoopInDb(
 
   await db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woopId, userId]);
 
+  // Puoi salvare le preferenze in tabella a parte oppure estenderle nel JSON del Woop
+
   return woopId;
 }
 
@@ -110,4 +115,3 @@ export async function deleteWoop(woop_id: number): Promise<void> {
   await db.query(`DELETE FROM participants WHERE woop_id = $1`, [woop_id]);
   await db.query(`DELETE FROM woops WHERE id = $1`, [woop_id]);
 }
-
