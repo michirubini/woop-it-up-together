@@ -74,6 +74,27 @@ async function createTablesSafely() {
     EXCEPTION WHEN duplicate_column THEN END;
   END $$;`);
 
+  // ✅ AGGIUNGIAMO LE NUOVE COLONNE
+  await db.query(`DO $$ BEGIN
+    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_participants INTEGER;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_distance INTEGER;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS gender_preference VARCHAR(10);
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
+  await db.query(`DO $$ BEGIN
+    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS time_frame TEXT;
+    EXCEPTION WHEN duplicate_column THEN END;
+  END $$;`);
+
   // 💬 MESSAGES
   await db.query(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -132,7 +153,3 @@ async function createTablesSafely() {
 createTablesSafely().catch((err) => {
   console.error("❌ Errore nella creazione delle tabelle:", err);
 });
-
-
-
-

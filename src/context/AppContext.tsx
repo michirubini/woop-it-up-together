@@ -76,25 +76,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return savedWoops ? JSON.parse(savedWoops) : [];
   });
 
+
 useEffect(() => {
   const fetchWoops = async () => {
     try {
       const res = await fetch(`${API}/api/woops`);
       const data = await res.json();
-      if (res.ok) {
-        setWoops(data.woops.map((woop: any) => ({
-          ...woop,
-          id: `woop-${woop.id}`,
-        })));
-      } else {
-        console.error("Errore nel caricamento dei Woop:", data.error);
-      }
+      if (!res.ok) throw new Error(data.error);
+
+      const woopsWithMessages = await Promise.all(
+        data.woops.map(async (woop: any) => {
+          try {
+            const resMsg = await fetch(`${API}/api/messages/${parseInt(woop.id.replace("woop-", ""))}`);
+            const msgs = await resMsg.json();
+            return {
+              ...woop,
+              messages: msgs.map((m: any) => ({
+                userId: m.user_id.toString(),
+                text: m.text,
+                timestamp: new Date(m.timestamp)
+              }))
+            };
+          } catch (err) {
+            console.error("❌ Errore fetch messaggi per woop", woop.id, err);
+            return { ...woop, messages: [] };
+          }
+        })
+      );
+
+      setWoops(woopsWithMessages);
     } catch (error) {
-      console.error("Errore fetch Woop:", error);
+      console.error("Errore fetch Woops:", error);
     }
   };
+
   fetchWoops();
 }, []);
+
 
 
   useEffect(() => {
@@ -315,10 +333,24 @@ const createWoop = async (woopData: Partial<Woop>) => {
     }
   };
   
-  const sendMessage = (woopId: string, message: string) => {
-    if (!currentUser || !message.trim()) return;
-    setWoops(prevWoops =>
-      prevWoops.map(w => {
+const sendMessage = async (woopId: string, message: string) => {
+  if (!currentUser || !message.trim()) return;
+
+  const woopNumericId = parseInt(woopId.replace("woop-", ""));
+
+  try {
+    await fetch(`${API}/api/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        woop_id: woopNumericId,
+        user_id: parseInt(currentUser.id),
+        text: message
+      }),
+    });
+
+    setWoops(prev =>
+      prev.map(w => {
         if (w.id === woopId) {
           return {
             ...w,
@@ -332,7 +364,11 @@ const createWoop = async (woopData: Partial<Woop>) => {
         return w;
       })
     );
-  };
+  } catch (err) {
+    console.error("❌ Errore invio messaggio:", err);
+    toast.error("Errore invio messaggio");
+  }
+};
 
 // Sostituisci TUTTA la funzione leaveWoop nel tuo AppProvider con questa:
 

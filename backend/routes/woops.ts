@@ -1,25 +1,21 @@
 import { Router } from "express";
+import { getAllWoops } from "../api/woops"; // ✅ Importa funzione corretta
 import db from "../db";
 
 const router = Router();
 
-// GET /api/woops - Recupera tutti i Woop reali (no mock)
+// ✅ GET /api/woops - Restituisce Woop reali con partecipanti e creator
 router.get("/", async (_req, res) => {
   try {
-    const result = await db.query(`
-      SELECT * FROM woops
-      WHERE (is_mock = false OR is_mock IS NULL)
-      AND user_id IS NOT NULL
-      ORDER BY created_at DESC
-    `);
-    res.status(200).json(result.rows);
+    const woops = await getAllWoops(); // usa la funzione già pronta
+    res.status(200).json({ woops });   // formato compatibile col frontend
   } catch (err) {
     console.error("❌ Errore recupero Woops:", err);
     res.status(500).json({ error: "Errore nel recupero dei Woops" });
   }
 });
 
-// POST /api/woops - Crea un nuovo Woop reale
+// ✅ POST /api/woops - Crea un nuovo Woop reale (REST classico)
 router.post("/", async (req, res) => {
   const { title, description, user_id, userId } = req.body;
   const finalUserId = user_id || userId;
@@ -43,4 +39,5 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
+
 

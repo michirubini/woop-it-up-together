@@ -64,10 +64,24 @@ router.post("/", authMiddleware, async (req, res) => {
     // 3. Se trova match compatibile → crea woop con is_mock = false
     if (compatible) {
       const woopRes = await db.query(
-        `INSERT INTO woops (title, description, user_id, is_mock)
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [`[AUTO] ${activity}`, `Match automatico per ${activity}`, userId, false]
-      );
+  `INSERT INTO woops (
+    title, description, user_id, is_mock, status,
+    max_participants, max_distance, gender_preference, time_frame
+  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+  RETURNING id`,
+  [
+    `[AUTO] ${activity}`,
+    `Match automatico per ${activity}`,
+    userId,
+    false,           // is_mock
+    'active',        // status iniziale
+    max_participants,
+    radius_km,
+    gender,
+    'Oggi'           // puoi cambiarlo se vuoi
+  ]
+);
+
       const woopId = woopRes.rows[0].id;
 
       // 4. Inserisci entrambi nei partecipanti
