@@ -27,6 +27,8 @@ router.post("/", authMiddleware, async (req, res) => {
     longitude
   } = req.body;
 
+  const normalizedActivity = activity.toLowerCase();
+
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: "Non autenticato" });
 
@@ -37,18 +39,17 @@ router.post("/", authMiddleware, async (req, res) => {
         radius_km, latitude, longitude
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *`,
-      [userId, activity, level, gender, max_participants, radius_km, latitude, longitude]
+      [userId, normalizedActivity, level, gender, max_participants, radius_km, latitude, longitude]
     );
     const newRequest = insertRes.rows[0];
 
-    // 1. Cerca Woop incompleti compatibili
     const openWoops = await db.query(
       `SELECT * FROM woops 
        WHERE status = 'incomplete'
        AND title = $1
        AND gender_preference = $2
        AND max_participants = $3`,
-      [`[AUTO] ${activity}`, gender, max_participants]
+      [`[AUTO] ${normalizedActivity}`, gender, max_participants]
     );
 
     for (const woop of openWoops.rows) {
@@ -71,7 +72,6 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    // 2. Cerca richieste compatibili per creare un nuovo Woop
     const pendingMatches = await db.query(
       `SELECT * FROM match_requests
        WHERE status = 'pending'
@@ -80,7 +80,7 @@ router.post("/", authMiddleware, async (req, res) => {
        AND level = $3
        AND (gender = $4 OR gender = 'entrambi')
        AND max_participants = $5`,
-      [userId, activity, level, gender, max_participants]
+      [userId, normalizedActivity, level, gender, max_participants]
     );
 
     const compatible = pendingMatches.rows.filter(r => {
@@ -98,8 +98,8 @@ router.post("/", authMiddleware, async (req, res) => {
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
         RETURNING id`,
         [
-          `[AUTO] ${activity}`,
-          `Match automatico per ${activity}`,
+          `[AUTO] ${normalizedActivity}`,
+          `Match automatico per ${normalizedActivity}`,
           userId,
           false,
           group.length >= max_participants ? 'active' : 'incomplete',
@@ -129,7 +129,6 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(201).json({ matched: true, woopId });
     }
 
-    // 3. Nessun match, sei in attesa
     return res.status(201).json({ matched: false, requestId: newRequest.id });
   } catch (err) {
     console.error("❌ Errore durante il match automatico:", err);
@@ -138,3 +137,4 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 export default router;
+

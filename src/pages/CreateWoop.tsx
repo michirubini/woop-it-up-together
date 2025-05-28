@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,20 +21,41 @@ import {
 import { toast } from 'sonner';
 import { useAppContext } from '@/context/AppContext';
 
-const interestsList = [
-  'Calcetto', 'Padel', 'Tennis', 'Beach Volley', 'Basket',
-  'Escursionismo', 'Bici', 'Cinema', 'Aperitivo', 'Concerto',
-  'Museo', 'Teatro', 'Cucina', 'Fotografia', 'Videogiochi'
-];
-
 const timeFrameOptions = [
   'Oggi', 'Stasera', 'Domani mattina', 'Domani pomeriggio',
   'Domani sera', 'Questo weekend', 'Settimana prossima'
 ];
 
 const CreateWoop: React.FC = () => {
-  const { currentUser, createWoop } = useAppContext(); // ✅ corretto
+  const { currentUser, createWoop } = useAppContext();
   const navigate = useNavigate();
+
+  const [interestsList, setInterestsList] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/activities`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          const names = data.activities.map((a: { name: string }) => a.name);
+          setInterestsList(names);
+        } else {
+          console.error("Errore API attività:", data.error);
+        }
+      } catch (err) {
+        console.error("Errore fetch attività:", err);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   const [formData, setFormData] = useState({
     interest: '',
@@ -101,7 +122,9 @@ const CreateWoop: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {interestsList.map(interest => (
-                    <SelectItem key={interest} value={interest}>{interest}</SelectItem>
+                    <SelectItem key={interest} value={interest}>
+                      {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -188,4 +211,5 @@ const CreateWoop: React.FC = () => {
 };
 
 export default CreateWoop;
+
 
