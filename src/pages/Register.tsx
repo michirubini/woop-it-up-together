@@ -26,20 +26,36 @@ const Register: React.FC = () => {
   const { register } = useAppContext();
   const navigate = useNavigate();
   
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    interests: [] as string[],
-    otherInterests: '',
-    bio: '',
-    timeOfDay: [] as string[],
-    daysOfWeek: [] as string[],
-    flexibility: ''
-  });
+ const [formData, setFormData] = useState<{
+  firstName: string;
+  lastName: string;
+  age: string;
+  gender: 'maschio' | 'femmina' | ''; // accetta anche stringa vuota iniziale
+  email: string;
+  password: string;
+  confirmPassword: string;
+  interests: string[];
+  otherInterests: string;
+  bio: string;
+  timeOfDay: string[];
+  daysOfWeek: string[];
+  flexibility: string;
+}>({
+  firstName: '',
+  lastName: '',
+  age: '',
+  gender: '', // inizialmente vuoto
+  email: '',
+  password: '',
+  confirmPassword: '',
+  interests: [],
+  otherInterests: '',
+  bio: '',
+  timeOfDay: [],
+  daysOfWeek: [],
+  flexibility: ''
+});
+
   
   const [formErrors, setFormErrors] = useState({
     firstName: false,
@@ -50,7 +66,8 @@ const Register: React.FC = () => {
     confirmPassword: false
   });
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -100,37 +117,49 @@ const Register: React.FC = () => {
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      toast.error('Per favore, correggi gli errori nel modulo');
-      return;
+  e.preventDefault();
+
+  if (!validateForm()) {
+    toast.error('Per favore, correggi gli errori nel modulo');
+    return;
+  }
+
+  // Validazione gender
+  if (formData.gender !== 'maschio' && formData.gender !== 'femmina') {
+    toast.error('Seleziona un genere valido.');
+    return;
+  }
+
+  // Processa e normalizza interessi (rende tutto lowercase, senza spazi, niente duplicati)
+  let allInterests = [...formData.interests];
+  if (formData.otherInterests.trim()) {
+    allInterests = [...allInterests, ...formData.otherInterests.split(',')];
+  }
+
+  const normalizedInterests = allInterests
+    .map(i => i.trim().toLowerCase())
+    .filter((value, index, self) => value && self.indexOf(value) === index); // rimuove vuoti e duplicati
+
+  const success = await register({
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    age: parseInt(formData.age),
+    gender: formData.gender,
+    email: formData.email,
+    bio: formData.bio,
+    interests: normalizedInterests,
+    availability: {
+      timeOfDay: formData.timeOfDay as ('Mattina' | 'Pomeriggio' | 'Sera')[],
+      daysOfWeek: formData.daysOfWeek as ('Weekend' | 'Feriali')[],
+      flexibility: formData.flexibility
     }
-    
-    // Process interests
-    let allInterests = [...formData.interests];
-    if (formData.otherInterests.trim()) {
-      allInterests = [...allInterests, ...formData.otherInterests.split(',').map(i => i.trim())];
-    }
-    
-    const success = await register({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      age: parseInt(formData.age),
-      email: formData.email,
-      bio: formData.bio,
-      interests: allInterests,
-      availability: {
-        timeOfDay: formData.timeOfDay as ('Mattina' | 'Pomeriggio' | 'Sera')[],
-        daysOfWeek: formData.daysOfWeek as ('Weekend' | 'Feriali')[],
-        flexibility: formData.flexibility
-      }
-    }, formData.password);
-    
-    if (success) {
-      navigate('/profile-setup');
-    }
-  };
+  }, formData.password);
+
+
+  if (success) {
+    navigate('/profile-setup');
+  }
+};
   
   return (
     <div className="max-w-2xl mx-auto py-8">
@@ -185,6 +214,22 @@ const Register: React.FC = () => {
                   <p className="text-red-500 text-sm">Devi avere almeno 18 anni</p>
                 )}
               </div>
+              <div className="space-y-2">
+  <Label htmlFor="gender">Genere *</Label>
+  <select
+    id="gender"
+    name="gender"
+    value={formData.gender}
+    onChange={handleChange}
+    required
+    className="w-full border rounded-md px-3 py-2"
+  >
+    <option value="">Seleziona</option>
+    <option value="maschio">Maschio</option>
+    <option value="femmina">Femmina</option>
+  </select>
+</div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input

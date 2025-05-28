@@ -1,9 +1,8 @@
-// ✅ init-db.ts aggiornato
 import db = require("./db");
 
 async function createTablesSafely() {
   const result = await db.query("SELECT current_database();");
-  console.log("\uD83C\uDFAF Database attivo:", result.rows[0].current_database);
+  console.log("🎯 Database attivo:", result.rows[0].current_database);
 
   // USERS
   await db.query(`
@@ -12,6 +11,7 @@ async function createTablesSafely() {
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
       age INTEGER NOT NULL,
+      gender TEXT CHECK (gender IN ('maschio', 'femmina')),
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       bio TEXT,
@@ -24,7 +24,7 @@ async function createTablesSafely() {
     );
   `);
 
-  // Rimuove la colonna interests se esiste (ora usiamo user_activities)
+  // Rimuove la colonna interests se esiste
   await db.query(`DO $$ BEGIN
     BEGIN ALTER TABLE users DROP COLUMN IF EXISTS interests;
     EXCEPTION WHEN undefined_column THEN END;
@@ -49,13 +49,30 @@ async function createTablesSafely() {
     );
   `);
 
+  // Inserimento lowercase e safe
   await db.query(`
     INSERT INTO activities (name)
-    VALUES ('Padel'), ('Calcetto'), ('Aperitivo'), ('Escursionismo')
+    VALUES 
+      ('padel'), 
+      ('calcetto'), 
+      ('aperitivo'), 
+      ('escursionismo')
     ON CONFLICT (name) DO NOTHING;
   `);
 
-  // USER_ACTIVITIES many-to-many
+  // Normalizza nomi (lowercase + trim)
+  await db.query(`
+    UPDATE activities
+    SET name = LOWER(TRIM(name));
+  `);
+
+  // Indice case-insensitive
+  await db.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_activity_name_lower
+    ON activities (LOWER(name));
+  `);
+
+  // USER_ACTIVITIES (many-to-many)
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_activities (
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -132,10 +149,10 @@ async function createTablesSafely() {
     );
   `);
 
-  console.log("\u2705 Tabelle verificate o create con successo.");
+  console.log("✅ Tabelle verificate o create con successo.");
   await db.end();
 }
 
 createTablesSafely().catch((err) => {
-  console.error("\u274C Errore nella creazione delle tabelle:", err);
+  console.error("❌ Errore nella creazione delle tabelle:", err);
 });

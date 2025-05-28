@@ -15,6 +15,7 @@ router.post("/register", async (req, res) => {
     firstName,
     lastName,
     age,
+    gender, // 🆕
     email,
     password,
     bio,
@@ -24,8 +25,12 @@ router.post("/register", async (req, res) => {
     photos
   } = req.body;
 
-  if (!firstName || !lastName || !age || !email || !password) {
+  if (!firstName || !lastName || !age || !email || !password || !gender) {
     return res.status(400).json({ error: "Campi obbligatori mancanti." });
+  }
+
+  if (!['maschio', 'femmina'].includes(gender)) {
+    return res.status(400).json({ error: "Genere non valido (usa 'maschio' o 'femmina')." });
   }
 
   try {
@@ -34,13 +39,14 @@ router.post("/register", async (req, res) => {
     // 1. Crea l’utente
     const result = await db.query(
       `INSERT INTO users 
-        (first_name, last_name, age, email, password, bio, availability, profile_picture, photos)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, first_name, last_name, age, email, bio, availability, profile_picture, photos`,
+        (first_name, last_name, age, gender, email, password, bio, availability, profile_picture, photos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, first_name, last_name, age, gender, email, bio, availability, profile_picture, photos`,
       [
         firstName,
         lastName,
         age,
+        gender,
         email,
         hashedPassword,
         bio || null,
@@ -53,15 +59,21 @@ router.post("/register", async (req, res) => {
     const user = result.rows[0];
     const userId = user.id;
 
-    // 2. Associa attività selezionate
-    if (Array.isArray(interests) && interests.length > 0) {
-      await db.query(`
-        INSERT INTO user_activities (user_id, activity_id)
-        SELECT $1, a.id
-        FROM activities a
-        WHERE a.name = ANY($2::text[])
-      `, [userId, interests]);
-    }
+if (Array.isArray(interests) && interests.length > 0) {
+  const normalizedInterests = interests
+    .map(i => i.trim().toLowerCase())
+    .filter((value, index, self) => value && self.indexOf(value) === index); // ✅ filtra duplicati e vuoti
+
+  await db.query(`
+    INSERT INTO user_activities (user_id, activity_id)
+    SELECT $1, a.id
+    FROM activities a
+    WHERE LOWER(a.name) = ANY($2::text[])
+  `, [userId, normalizedInterests]);
+}
+
+
+
 
     res.status(201).json({
       message: "Utente registrato con successo.",
@@ -88,6 +100,7 @@ router.post("/login", async (req, res) => {
         first_name AS "firstName",
         last_name AS "lastName",
         age,
+        gender, -- 🆕
         email,
         password,
         bio,
@@ -126,5 +139,3 @@ router.post("/login", async (req, res) => {
 });
 
 export = router;
-
-

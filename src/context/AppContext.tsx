@@ -8,6 +8,7 @@ export interface User {
   firstName: string;
   lastName: string;
   age: number;
+   gender?: 'maschio' | 'femmina';
   profilePicture?: string;
   photos: string[];
   email?: string;
@@ -151,22 +152,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       setCurrentUser({
-        id: data.user.id,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        age: data.user.age || 0,
-        email: data.user.email,
-        profilePicture: data.user.profilePicture || undefined,
-        photos: data.user.photos || [],
-        interests: data.user.interests || [],
-        availability: data.user.availability || {
-          timeOfDay: [],
-          daysOfWeek: [],
-          flexibility: ''
-        },
-        rating: data.user.rating,
-        badges: data.user.badges || [],
-      });
+  id: data.user.id,
+  firstName: data.user.firstName,
+  lastName: data.user.lastName,
+  age: data.user.age || 0,
+  gender: data.user.gender,  // corretto qui
+  email: data.user.email,
+  profilePicture: data.user.profilePicture || undefined,
+  photos: data.user.photos || [],
+  interests: data.user.interests || [],
+  availability: data.user.availability || {
+    timeOfDay: [],
+    daysOfWeek: [],
+    flexibility: ''
+  },
+  rating: data.user.rating,
+  badges: data.user.badges || [],
+});
+
 
       toast.success("Login effettuato con successo!");
       return true;
@@ -191,20 +194,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return false;
       }
 
-      setCurrentUser({
-        id: data.user?.id || "temp-id",
-        firstName: userData.firstName || "",
-        lastName: userData.lastName || "",
-        age: userData.age || 0,
-        email: userData.email,
-        photos: [],
-        interests: userData.interests || [],
-        availability: userData.availability || {
-          timeOfDay: [],
-          daysOfWeek: [],
-          flexibility: ''
-        }
-      });
+setCurrentUser({
+  id: data.user?.id || "temp-id",
+  firstName: userData.firstName || "",
+  lastName: userData.lastName || "",
+  age: userData.age || 0,
+  gender: userData.gender, // <-- aggiungi questa linea
+  email: userData.email,
+  photos: [],
+  interests: userData.interests || [],
+  availability: userData.availability || {
+    timeOfDay: [],
+    daysOfWeek: [],
+    flexibility: ''
+  }
+});
+
 
       toast.success("Registrazione completata con successo!");
       return true;

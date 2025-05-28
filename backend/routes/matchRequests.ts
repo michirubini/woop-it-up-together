@@ -44,25 +44,29 @@ router.post("/", authMiddleware, async (req, res) => {
     );
     const newRequest = insertRes.rows[0];
 
-    // 2. Cerca una richiesta compatibile
-    const pendingMatches = await db.query(
+    // 2. Cerca tutte le richieste compatibili (inclusa la nuova)
+    const allPendingMatches = await db.query(
       `SELECT * FROM match_requests
        WHERE status = 'pending'
-       AND user_id != $1
-       AND activity = $2
-       AND level = $3
-       AND (gender = $4 OR gender = 'entrambi')
-       AND max_participants = $5`,
-      [userId, activity, level, gender, max_participants]
+       AND activity = $1
+       AND level = $2
+       AND (gender = $3 OR gender = 'entrambi')
+       AND max_participants = $4`,
+      [activity, level, gender, max_participants]
     );
 
-    const compatible = pendingMatches.rows.find(r => {
+    const compatible = allPendingMatches.rows.filter(r => {
       const distance = getDistanceKm(latitude, longitude, r.latitude, r.longitude);
       return distance <= Math.min(radius_km, r.radius_km);
     });
 
-    // 3. Se trova match compatibile → crea woop
-    if (compatible) {
+    // Rimuove duplicati per user_id
+    const uniqueByUser = Array.from(new Map(
+      compatible.map(req => [req.user_id, req])
+    ).values());
+
+    // Se abbastanza utenti, crea il woop
+    if (uniqueByUser.length >= max_participants) {
       const woopRes = await db.query(
         `INSERT INTO woops (
           title, description, user_id, is_mock, status,
@@ -84,24 +88,27 @@ router.post("/", authMiddleware, async (req, res) => {
 
       const woopId = woopRes.rows[0].id;
 
-      // 4. Inserisci entrambi nei partecipanti
-      await db.query(
-        `INSERT INTO participants (woop_id, user_id) VALUES ($1, $2), ($1, $3)`,
-        [woopId, userId, compatible.user_id]
+      const participantsToInsert = uniqueByUser.slice(0, max_participants);
+
+      // Inserisce partecipanti
+      await Promise.all(
+        participantsToInsert.map(r =>
+          db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woopId, r.user_id])
+        )
       );
 
-      // 5. Aggiorna stato delle match_requests
+      // Aggiorna stato delle match_requests
+      const matchedIds = participantsToInsert.map(r => r.id);
       await db.query(
-        `UPDATE match_requests SET status = 'matched', woop_id = $1 WHERE id IN ($2, $3)`,
-        [woopId, newRequest.id, compatible.id]
+        `UPDATE match_requests SET status = 'matched', woop_id = $1 WHERE id = ANY($2::int[])`,
+        [woopId, matchedIds]
       );
 
       return res.status(201).json({ matched: true, woopId });
     }
 
-    // Nessun match per ora
-    res.status(201).json({ matched: false, requestId: newRequest.id });
-
+    // Nessun match completo per ora
+    return res.status(201).json({ matched: false, requestId: newRequest.id });
   } catch (err) {
     console.error("❌ Errore durante il match automatico:", err);
     res.status(500).json({ error: "Errore interno" });
