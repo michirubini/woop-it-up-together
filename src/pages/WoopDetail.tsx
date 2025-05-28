@@ -164,14 +164,17 @@ const handleDeleteWoop = async () => {
               <CardDescription className="mt-1">{woop.description}</CardDescription>
             </div>
             <Badge variant={
-              woop.status === 'completed' ? "outline" :
-              woop.status === 'active' ? "default" :
-              woop.status === 'ready' ? "secondary" : "outline"
-            }>
-              {woop.status === 'completed' ? 'Completato' :
-               woop.status === 'active' ? 'Attivo' :
-               woop.status === 'ready' ? 'Pronto' : 'Cercando...'}
-            </Badge>
+  woop.status === 'completed' ? "outline" :
+  woop.status === 'ready' ? "secondary" :
+  woop.status === 'active' ? "default" :
+  "outline"
+}>
+  {woop.status === 'completed' ? 'Completato' :
+   woop.status === 'ready' ? 'Pronto' :
+   woop.status === 'active' ? 'Attivo' :
+   '🕓 In attesa...'}
+</Badge>
+
           </div>
         </CardHeader>
         <CardContent>
