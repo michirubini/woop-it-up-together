@@ -24,7 +24,6 @@ async function createTablesSafely() {
     );
   `);
 
-  // Rimuove la colonna interests se esiste
   await db.query(`DO $$ BEGIN
     BEGIN ALTER TABLE users DROP COLUMN IF EXISTS interests;
     EXCEPTION WHEN undefined_column THEN END;
@@ -49,30 +48,20 @@ async function createTablesSafely() {
     );
   `);
 
-  // Inserimento lowercase e safe
   await db.query(`
     INSERT INTO activities (name)
-    VALUES 
-      ('padel'), 
-      ('calcetto'), 
-      ('aperitivo'), 
-      ('escursionismo')
+    VALUES ('padel'), ('calcetto'), ('aperitivo'), ('escursionismo')
     ON CONFLICT (name) DO NOTHING;
   `);
 
-  // Normalizza nomi (lowercase + trim)
-  await db.query(`
-    UPDATE activities
-    SET name = LOWER(TRIM(name));
-  `);
+  await db.query(`UPDATE activities SET name = LOWER(TRIM(name));`);
 
-  // Indice case-insensitive
   await db.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_activity_name_lower
     ON activities (LOWER(name));
   `);
 
-  // USER_ACTIVITIES (many-to-many)
+  // USER_ACTIVITIES
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_activities (
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -89,14 +78,18 @@ async function createTablesSafely() {
       description TEXT,
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       status TEXT DEFAULT 'active',
+      is_mock BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 
-  await db.query(`DO $$ BEGIN
-    BEGIN ALTER TABLE woops ADD COLUMN IF NOT EXISTS is_mock BOOLEAN DEFAULT false;
-    EXCEPTION WHEN duplicate_column THEN END;
-  END $$;`);
+  // ✅ AGGIUNGI COLONNE SE MANCANO
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_participants INTEGER;`);
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS max_distance INTEGER;`);
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS gender_preference VARCHAR(10);`);
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS time_frame TEXT;`);
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS latitude DECIMAL(9,6);`);
+  await db.query(`ALTER TABLE woops ADD COLUMN IF NOT EXISTS longitude DECIMAL(9,6);`);
 
   // MESSAGES
   await db.query(`
@@ -149,7 +142,7 @@ async function createTablesSafely() {
     );
   `);
 
-  console.log("✅ Tabelle verificate o create con successo.");
+  console.log("✅ Tabelle verificate o aggiornate con successo.");
   await db.end();
 }
 

@@ -37,7 +37,7 @@ export interface Woop {
     timeFrame: string;
   };
   participants: User[];
-  status: 'searching' | 'ready' | 'active' | 'completed';
+  status: 'searching' | 'ready' | 'active' | 'completed' | 'incomplete';
   location?: string;
   messages?: {
     userId: string;
@@ -299,7 +299,12 @@ setCurrentUser({
             toast.success("Ti sei iscritto al Woop!");
             return {
               ...w,
-              status: w.participants.length + 1 >= w.preferences.maxParticipants ? 'active' : w.status,
+              status: w.participants.length + 1 >= w.preferences.maxParticipants
+  ? 'active'
+  : w.status === 'searching'
+    ? 'incomplete'
+    : w.status,
+
               participants: [...w.participants, currentUser]
             };
           }

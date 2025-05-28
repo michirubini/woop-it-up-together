@@ -41,6 +41,37 @@ router.post("/", authMiddleware, async (req, res) => {
     );
     const newRequest = insertRes.rows[0];
 
+    // 1. Cerca Woop incompleti compatibili
+    const openWoops = await db.query(
+      `SELECT * FROM woops 
+       WHERE status = 'incomplete'
+       AND title = $1
+       AND gender_preference = $2
+       AND max_participants = $3`,
+      [`[AUTO] ${activity}`, gender, max_participants]
+    );
+
+    for (const woop of openWoops.rows) {
+      const participantsRes = await db.query(
+        `SELECT COUNT(*) FROM participants WHERE woop_id = $1`,
+        [woop.id]
+      );
+      const count = parseInt(participantsRes.rows[0].count);
+      const distance = getDistanceKm(latitude, longitude, woop.latitude, woop.longitude);
+
+      if (count < max_participants && distance <= woop.max_distance) {
+        await db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woop.id, userId]);
+        await db.query(`UPDATE match_requests SET status = 'matched', woop_id = $1 WHERE id = $2`, [woop.id, newRequest.id]);
+
+        if (count + 1 === max_participants) {
+          await db.query(`UPDATE woops SET status = 'active' WHERE id = $1`, [woop.id]);
+        }
+
+        return res.status(201).json({ matched: true, woopId: woop.id });
+      }
+    }
+
+    // 2. Cerca richieste compatibili per creare un nuovo Woop
     const pendingMatches = await db.query(
       `SELECT * FROM match_requests
        WHERE status = 'pending'
@@ -63,8 +94,8 @@ router.post("/", authMiddleware, async (req, res) => {
       const woopRes = await db.query(
         `INSERT INTO woops (
           title, description, user_id, is_mock, status,
-          max_participants, max_distance, gender_preference, time_frame
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          max_participants, max_distance, gender_preference, time_frame, latitude, longitude
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
         RETURNING id`,
         [
           `[AUTO] ${activity}`,
@@ -75,19 +106,21 @@ router.post("/", authMiddleware, async (req, res) => {
           max_participants,
           radius_km,
           gender,
-          'Oggi'
+          'Oggi',
+          latitude,
+          longitude
         ]
       );
 
       const woopId = woopRes.rows[0].id;
 
-      const insertParticipants = group.slice(0, max_participants).map(r => {
-        return db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woopId, r.user_id]);
-      });
+      const insertParticipants = group.map(r =>
+        db.query(`INSERT INTO participants (woop_id, user_id) VALUES ($1, $2)`, [woopId, r.user_id])
+      );
 
       await Promise.all(insertParticipants);
 
-      const matchedIds = group.slice(0, max_participants).map(r => r.id);
+      const matchedIds = group.map(r => r.id);
       await db.query(
         `UPDATE match_requests SET status = 'matched', woop_id = $1 WHERE id = ANY($2::int[])`,
         [woopId, matchedIds]
@@ -96,12 +129,12 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(201).json({ matched: true, woopId });
     }
 
+    // 3. Nessun match, sei in attesa
     return res.status(201).json({ matched: false, requestId: newRequest.id });
   } catch (err) {
     console.error("❌ Errore durante il match automatico:", err);
-    res.status(500).json({ error: "Errore interno" });
+    return res.status(500).json({ error: "Errore interno" });
   }
 });
 
 export default router;
-

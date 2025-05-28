@@ -167,13 +167,16 @@ const handleDeleteWoop = async () => {
   woop.status === 'completed' ? "outline" :
   woop.status === 'ready' ? "secondary" :
   woop.status === 'active' ? "default" :
+  woop.status === 'incomplete' ? "secondary" :
   "outline"
 }>
   {woop.status === 'completed' ? 'Completato' :
    woop.status === 'ready' ? 'Pronto' :
    woop.status === 'active' ? 'Attivo' :
+   woop.status === 'incomplete' ? 'In attesa altri partecipanti' :
    '🕓 In attesa...'}
 </Badge>
+
 
           </div>
         </CardHeader>

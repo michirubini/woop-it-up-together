@@ -18,11 +18,11 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
 
   const readyWoops = woops.filter(woop => woop.status === 'ready');
-  const activeWoops = woops.filter(woop => 
-    (woop.status === 'active' || woop.status === 'searching') &&
-    Array.isArray(woop.participants) &&
-    woop.participants.some(p => p.id === currentUser?.id)
-  );
+  const activeWoops = woops.filter(woop =>
+  ['active', 'searching', 'incomplete'].includes(woop.status) &&
+  woop.participants.some(p => p.id === currentUser?.id)
+);
+
 
   if (!currentUser) {
     return (
@@ -217,9 +217,16 @@ const Index: React.FC = () => {
                       <p className="text-sm font-medium">Partecipanti: {woop.participants.length}/{woop.preferences.maxParticipants}</p>
                       <p className="text-sm text-gray-500">{woop.preferences.timeFrame}</p>
                     </div>
-                    <Badge variant={woop.status === 'active' ? "default" : "secondary"}>
-                      {woop.status === 'active' ? 'Attivo' : 'Cercando...'}
-                    </Badge>
+                    <Badge variant={
+  woop.status === 'active' ? "default" :
+  woop.status === 'incomplete' ? "secondary" :
+  "secondary"
+}>
+  {woop.status === 'active' ? 'Attivo' :
+   woop.status === 'incomplete' ? 'In attesa altri partecipanti' :
+   'Cercando...'}
+</Badge>
+
                   </div>
                 </CardContent>
                 <CardFooter>
